@@ -46,10 +46,10 @@ afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 ```
 
-```json
+```javascript
 // jest.config.js
-{
-  "setupFilesAfterSetup": ["./jest.setup.ts"]
+module.exports = {
+  setupFilesAfterEnv: ['./jest.setup.ts'],
 }
 ```
 

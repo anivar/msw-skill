@@ -5,7 +5,7 @@ description: '`HttpResponse` supports `Set-Cookie` headers. The native `Response
 tags: response, HttpResponse, cookies, Set-Cookie, forbidden-header
 ---
 
-# Use `HttpResponse` for Cookie Mocking
+# Use `HttpResponse` for Cookie Mocking Instead of Native `Response`
 
 ## Problem
 
