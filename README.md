@@ -1,5 +1,7 @@
 # MSW Skill
 
+Created by **[Anivar Aravind](https://anivar.net)**
+
 An AI agent skill for writing, reviewing, and debugging MSW (Mock Service Worker) v2 handlers, server setup, and test patterns with modern best practices.
 
 ## The Problem
@@ -79,6 +81,30 @@ Each rule file contains:
     ├── migration-v1-to-v2.md
     └── anti-patterns.md
 ```
+
+## Ecosystem — Skills by [Anivar Aravind](https://anivar.net)
+
+### Testing Skills
+| Skill | What it covers | Install |
+|-------|---------------|---------|
+| [jest-skill](https://github.com/anivar/jest-skill) | Jest best practices — mock design, async testing, matchers, timers, snapshots | `npx skills add anivar/jest-skill -g` |
+| [zod-testing](https://github.com/anivar/zod-testing) | Zod schema testing — safeParse, mock data, property-based | `npx skills add anivar/zod-testing -g` |
+| [redux-saga-testing](https://github.com/anivar/redux-saga-testing) | Redux-Saga testing — expectSaga, testSaga, providers | `npx skills add anivar/redux-saga-testing -g` |
+
+### Library & Framework Skills
+| Skill | What it covers | Install |
+|-------|---------------|---------|
+| [zod-skill](https://github.com/anivar/zod-skill) | Zod v4 schema validation, parsing, error handling | `npx skills add anivar/zod-skill -g` |
+| [redux-saga-skill](https://github.com/anivar/redux-saga-skill) | Redux-Saga effects, fork model, channels, RTK | `npx skills add anivar/redux-saga-skill -g` |
+
+### Engineering Analysis
+| Skill | What it covers | Install |
+|-------|---------------|---------|
+| [contributor-codebase-analyzer](https://github.com/anivar/contributor-codebase-analyzer) | Code analysis, annual reviews, promotion readiness | `npx skills add anivar/contributor-codebase-analyzer -g` |
+
+## Author
+
+**[Anivar Aravind](https://anivar.net)** — Building AI agent skills for modern JavaScript/TypeScript development.
 
 ## License
 
