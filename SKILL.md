@@ -13,7 +13,8 @@ user-invocable: false
 agentic: false
 compatibility: "TypeScript/JavaScript projects using msw ^2.0.0"
 metadata:
-  author: anivar
+  author: Anivar Aravind
+  author_url: https://anivar.net
   version: 1.0.0
   tags: msw, mocking, api, testing, http, graphql, service-worker, fetch
 ---
