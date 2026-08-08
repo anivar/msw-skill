@@ -44,7 +44,7 @@ beforeAll(() => {
 | `'warn'` (default) | Console warning, request passes through |
 | `'error'` | Throws error, test fails |
 | `'bypass'` | Silent, request passes through |
-| `(request) => {}` | Custom function for conditional handling |
+| `(request) => {}` | Custom function for conditional handling. Opts you out of the built-in common-asset exemption — re-apply it with `isCommonAssetRequest(request)` (see `references/server-api.md`) |
 
 ## Why
 

@@ -2,6 +2,7 @@
 
 ## Table of Contents
 
+- [Environment Requirements](#environment-requirements)
 - [Import Changes](#import-changes)
 - [Handler Namespace](#handler-namespace)
 - [Resolver Signature](#resolver-signature)
@@ -10,6 +11,17 @@
 - [GraphQL Changes](#graphql-changes)
 - [Lifecycle Event Changes](#lifecycle-event-changes)
 - [Removed APIs](#removed-apis)
+
+## Environment Requirements
+
+MSW v2 raises the minimum runtime floor. Verify these before applying any code change below.
+
+| Requirement | Minimum |
+|-------------|---------|
+| Node.js | 18.0.0 (earlier versions unsupported) |
+| TypeScript | 4.7 |
+
+Note: early Node.js 18 releases (e.g. v18.8.0) lack `request.formData()` support, which surfaces as a "multipart/form-data is not supported" error. Use the latest 18.x or newer.
 
 ## Import Changes
 
@@ -63,7 +75,7 @@ http.get('/user', ({ request, params, cookies }) => {
 | Property | Type | Description |
 |----------|------|-------------|
 | `request` | `Request` | Standard Fetch API Request |
-| `params` | `Record<string, string>` | URL path parameters |
+| `params` | `Record<string, string \| string[]>` | Path parameters. Repeating params (`:segments+`) yield an array of strings |
 | `cookies` | `Record<string, string>` | Parsed request cookies |
 | `requestId` | `string` | Unique request identifier |
 
@@ -266,6 +278,18 @@ Key changes:
 | `res.once()` | `{ once: true }` handler option |
 | `res.networkError()` | `HttpResponse.error()` |
 | `ctx.fetch()` | Use native `fetch()` with `bypass()` from `msw` |
+| `req.passthrough()` | `passthrough()` from `msw` |
+| `printHandlers()` | `listHandlers()` |
+
+### printHandlers() to listHandlers()
+
+```typescript
+// BAD: v1
+worker.printHandlers()
+
+// GOOD: v2 — returns an array of handlers instead of logging them
+console.log(worker.listHandlers())
+```
 
 ### ctx.fetch() to bypass()
 

@@ -1,7 +1,7 @@
 ---
 title: Use Explicit Milliseconds with `delay()` in Tests
 impact: MEDIUM
-description: '`delay()` without arguments uses a realistic random delay in the browser but is instant (negated) in Node.js. Use `delay(ms)` for predictable test behavior.'
+description: '`delay()` and `delay(''real'')` apply a realistic random delay in the browser, but in Node.js the realistic delay is cut to a few milliseconds. Use `delay(ms)` for predictable test behavior.'
 tags: utility, delay, timing, node, browser, testing
 ---
 
@@ -9,14 +9,14 @@ tags: utility, delay, timing, node, browser, testing
 
 ## Problem
 
-`await delay()` in Node.js test environment does nothing — it resolves immediately. Developers expect a 200ms delay and write timing-dependent assertions.
+`await delay()` in a Node.js test environment does not apply the realistic latency it applies in the browser. Upstream: "when testing in Node.js, the implicit delay is negated to prevent it affecting the test performance." Developers expect a ~200ms delay and write timing-dependent assertions against it. `delay('real')` is not an escape hatch — it "explicitly sets the realistic response time", which is the same value the implicit delay uses, so it is reduced in Node.js as well.
 
 ## Incorrect
 
 ```typescript
-// BUG: delay() without args is instant in Node.js
+// BUG: the realistic delay is cut down in Node.js
 http.get('/api/data', async () => {
-  await delay() // No-op in Node.js — resolves immediately
+  await delay() // Effectively instant in Node.js — and so is delay('real')
   return HttpResponse.json({ data: 'loaded' })
 })
 
@@ -47,11 +47,13 @@ http.get('/api/slow', async () => {
 
 | Usage | Browser | Node.js | Recommendation |
 |-------|---------|---------|----------------|
-| `delay()` | Random realistic delay | Instant (negated) | Avoid in tests |
+| `delay()` | Random ~100-400ms | Effectively instant | Avoid in tests |
 | `delay(ms)` | Waits `ms` | Waits `ms` | Use in tests |
-| `delay('real')` | Random realistic delay | Random realistic delay | Simulating real latency |
-| `delay('infinite')` | Never resolves | Never resolves | Testing timeouts |
+| `delay('real')` | Random ~100-400ms | Effectively instant — same as `delay()` | Does NOT restore latency in Node.js |
+| `delay('infinite')` | Pends forever | Pends forever | Testing timeouts |
 
 ## Why
 
-The no-argument `delay()` is designed for browser mocking where you want realistic-feeling latency without slowing down tests. In Node.js test environments, it's negated to keep tests fast. If your test depends on a delay (e.g., testing loading states), always specify explicit milliseconds.
+The no-argument `delay()` is designed for browser mocking where you want realistic-feeling latency without slowing down tests: it applies "a random number equal to the average response time you encounter when communicating with an actual HTTP server (~100-400ms)". In Node.js, "the implicit delay is negated to prevent it affecting the test performance".
+
+`delay('real')` is not an escape hatch from that. Upstream defines it as explicitly setting the same realistic response time, and in msw 2.15.0 both routes call the same internal helper — which returns the browser's random 100-400ms but a fixed few milliseconds under Node. So in a test runner, `delay()` and `delay('real')` are interchangeable and neither produces observable latency. If your test depends on a delay (e.g., testing loading states), always specify explicit milliseconds.
