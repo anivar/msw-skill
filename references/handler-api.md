@@ -129,9 +129,13 @@ http.get('/user/:userId/post/:postId', ({ params }) => {
 
 ### Wildcard parameter
 
+A bare `*` is an *unnamed* group, so there is no `params['*']` — reading it gives
+`undefined`. Name the parameter instead, which is both readable and stable:
+
 ```typescript
-http.get('/files/*', ({ params }) => {
-  const path = params['*'] // everything after /files/
+http.get('/files/:path*', ({ params }) => {
+  // params.path is an array of segments: ['a', 'b', 'c.txt']
+  const path = [].concat(params.path).join('/')
   return HttpResponse.json({ path })
 })
 ```

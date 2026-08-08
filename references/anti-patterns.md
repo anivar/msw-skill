@@ -28,7 +28,7 @@ http.get('/api/user', () => HttpResponse.json({ name: 'John' }))
 ## 2. Putting query params in URL predicates
 
 ```typescript
-// BAD: silently matches nothing
+// BAD: '?id=1' is stripped — this is just http.get('/post') and serves every /post request
 http.get('/post?id=1', resolver)
 
 // GOOD: read query params inside resolver
