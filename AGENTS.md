@@ -43,10 +43,10 @@ http.get('/api/user', () => HttpResponse.json({ name: 'John' }))
 
 ### Rule: Never Put Query Parameters in Handler URL Predicates
 
-MSW matches by pathname only. Query parameters in the URL predicate are silently ignored.
+MSW matches by pathname only. Query parameters are stripped from the predicate, so including them widens the handler to every request on that path rather than narrowing it. MSW logs a warning when it finds them.
 
 ```typescript
-// INCORRECT — silently matches nothing
+// INCORRECT — query string stripped; this matches ALL '/post' requests
 http.get('/post?id=1', resolver)
 
 // CORRECT — read query params inside the resolver
