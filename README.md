@@ -26,7 +26,7 @@ npx skills add https://github.com/anivar/msw-skill
 
 ## Baseline
 
-- msw ^2.0.0
+- msw ^2.15.0
 - TypeScript/JavaScript
 
 ## What's Inside

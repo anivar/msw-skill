@@ -48,3 +48,7 @@ test('logs in the user', async () => {
 ## Why
 
 MSW intercepts requests at the network level, so your tests should focus on observable outcomes: what the user sees, what state changes, what the function returns. This makes tests resilient to HTTP client refactors and more readable.
+
+Where the request's *validity* is what you care about, validate it inside the handler and return an error response for a bad request. Upstream puts it this way: "Not only is this the right way to assert the request's validity, error handling also brings your request handlers closer to the production behavior."
+
+**Exception:** some requests leave no observable trace in the application — typically one-way calls to third-party services such as analytics or monitoring. For those, use the life-cycle events API (`server.events.on('request:start', ...)`, see `references/server-api.md`) to assert on requests directly.

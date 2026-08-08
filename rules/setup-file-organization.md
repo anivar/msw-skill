@@ -54,7 +54,17 @@ import { setupServer } from 'msw/node'
 import { handlers } from './handlers'
 
 export const server = setupServer(...handlers)
+```
 
+Browser setup needs one extra step: the worker script must exist on disk before `worker.start()` will work.
+
+```bash
+npx msw init <PUBLIC_DIR> --save
+```
+
+This copies `mockServiceWorker.js` into your public directory — commit it, and verify it is served at `/mockServiceWorker.js`. The `--save` flag records `msw.workerDirectory` in `package.json`, so the script is copied again automatically whenever you install `msw`, keeping it in sync with the installed version.
+
+```typescript
 // src/mocks/browser.ts
 import { setupWorker } from 'msw/browser'
 import { handlers } from './handlers'

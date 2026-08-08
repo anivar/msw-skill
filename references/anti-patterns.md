@@ -11,7 +11,7 @@
 7. [Using native Response for cookies](#7-using-native-response-for-cookies)
 8. [Not using server.boundary() for concurrent tests](#8-not-using-serverboundary-for-concurrent-tests)
 9. [Not setting onUnhandledRequest: 'error'](#9-not-setting-onunhandledrequest-error)
-10. [Throwing errors inside resolvers](#10-throwing-errors-inside-resolvers)
+10. [Throwing an Error to simulate a network failure](#10-throwing-an-error-to-simulate-a-network-failure)
 
 ## 1. Using v1 `rest` namespace
 
@@ -38,6 +38,19 @@ http.get('/post', ({ request }) => {
   return HttpResponse.json({ id })
 })
 ```
+
+The GOOD block above is the right default, but it still matches every `/post` request. To scope the handler so that requests without the param fall through to other handlers, use a function predicate:
+
+```typescript
+// ALSO GOOD: scope the handler to requests carrying the param,
+// so requests without it fall through to other handlers
+http.get(
+  ({ request }) => new URL(request.url).searchParams.get('id') === '1',
+  () => HttpResponse.json({ id: 1, title: 'First Post' }),
+)
+```
+
+See also upstream's `withSearchParams` higher-order resolver, which calls `passthrough()` when the predicate fails: https://mswjs.io/docs/best-practices/custom-request-predicate
 
 ## 3. Importing setupServer from wrong path
 
@@ -75,6 +88,22 @@ await waitFor(() => {
   expect(screen.getByText('Welcome!')).toBeInTheDocument()
 })
 ```
+
+```typescript
+// ALSO GOOD: validate the request inside the handler
+http.post('/login', async ({ request }) => {
+  const data = await request.formData()
+  const email = data.get('email')
+
+  if (!email) {
+    return new HttpResponse('Missing email', { status: 400 })
+  }
+})
+```
+
+Upstream's rationale: "Not only is this the right way to assert the request's validity, error handling also brings your request handlers closer to the production behavior."
+
+**Exception:** some requests leave no observable trace in the application — typically one-way calls to third-party services such as analytics or monitoring. For those, use the life-cycle events API (`server.events.on('request:start', ...)`, see `references/server-api.md`) to assert on requests directly.
 
 ## 6. Not awaiting request.json()
 
@@ -130,10 +159,10 @@ server.listen()
 server.listen({ onUnhandledRequest: 'error' })
 ```
 
-## 10. Throwing errors inside resolvers
+## 10. Throwing an Error to simulate a network failure
 
 ```typescript
-// BAD: crashes handler internals
+// BAD: MSW handles this as an unhandled resolver exception, not a network error
 http.get('/api/data', () => {
   throw new Error('Network failure')
 })
@@ -143,3 +172,5 @@ http.get('/api/data', () => {
   return HttpResponse.error()
 })
 ```
+
+Note: throwing a `Response`/`HttpResponse` is a separate, supported feature — it short-circuits the resolver and is used as the mocked response. Only non-`Response` throws are the anti-pattern.

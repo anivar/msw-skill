@@ -106,7 +106,7 @@ console.log(handlers.length)
 | Method | Description |
 |--------|-------------|
 | `.start(options?)` | Register service worker, start intercepting |
-| `.stop()` | Unregister service worker, stop intercepting |
+| `.stop()` | Disable mocking for the current client (does NOT unregister the worker) |
 | `.use(...handlers)` | Same as server |
 | `.resetHandlers()` | Same as server |
 | `.restoreHandlers()` | Same as server |
@@ -132,6 +132,8 @@ await worker.start({
 ```typescript
 worker.stop()
 ```
+
+`worker.stop()` is not a true opposite of `worker.start()`. It does **not** unregister the service worker — it instructs the worker to disable API mocking for the current client (page) only, which is what allows multiple open clients to hold different interception states. The stopped state does **not** survive a page reload; reloading resumes mocking.
 
 ## Lifecycle Events
 
@@ -200,6 +202,8 @@ server.events.removeAllListeners()
 | `'bypass'` | Silent, request passes through |
 | Custom function | Conditional handling |
 
+**Built-in asset exemption:** for the string strategies, MSW first checks `isCommonAssetRequest(request)` and silently ignores common static asset requests, so they are never treated as unhandled. These never warn or error.
+
 ### Built-in strategies
 
 ```typescript
@@ -211,21 +215,21 @@ server.listen({ onUnhandledRequest: 'bypass' })  // silent passthrough
 ### Custom strategy
 
 ```typescript
+import { isCommonAssetRequest } from 'msw'
+
 server.listen({
   onUnhandledRequest(request, print) {
-    const url = new URL(request.url)
-
-    // Ignore specific paths
-    if (url.pathname.startsWith('/assets/')) {
+    // Supplying a custom callback OPTS OUT of MSW's built-in
+    // common-asset exemption — re-apply it manually.
+    if (isCommonAssetRequest(request)) {
       return
     }
 
-    // Ignore specific hosts
+    const url = new URL(request.url)
     if (url.hostname === 'cdn.example.com') {
       return
     }
 
-    // Error on everything else
     print.error()
   },
 })

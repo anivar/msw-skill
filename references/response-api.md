@@ -22,8 +22,10 @@ import { HttpResponse } from 'msw'
 new HttpResponse(body?, init?)
 ```
 
-- `body` — `string | Blob | ArrayBuffer | ReadableStream | FormData | null`
+- `body` — `Blob | ArrayBuffer | TypedArray | DataView | FormData | ReadableStream | URLSearchParams | string | null | undefined`
 - `init` — `{ status?, statusText?, headers? }`
+
+`HttpResponse` has the identical constructor signature to the Fetch API `Response` class, including static methods such as `Response.json()` and `Response.error()`.
 
 ```typescript
 // Plain body with custom status
@@ -95,6 +97,7 @@ HttpResponse.formData(form)
 ```typescript
 const buffer = new ArrayBuffer(8)
 HttpResponse.arrayBuffer(buffer)
+// Sets Content-Length from the buffer's byte length.
 ```
 
 ### HttpResponse.error()
@@ -168,6 +171,7 @@ new HttpResponse(null, {
 |---------|-----------|----------------|
 | JSON body | Manual `JSON.stringify` | `HttpResponse.json()` auto-serializes |
 | Content-Type | Must set manually | Auto-set by static methods |
+| Content-Length | Must set manually | Auto-set by `.arrayBuffer()` from the buffer's byte length |
 | Set-Cookie | Forbidden (silently dropped) | Supported |
 | Network error | Not possible | `HttpResponse.error()` |
 | Use in MSW handlers | Yes (except cookies) | Yes (full support) |

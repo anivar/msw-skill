@@ -2,13 +2,13 @@
 
 > This document is for AI agents and LLMs to follow when writing, reviewing, or debugging MSW (Mock Service Worker) handlers, server setup, and test patterns. It compiles all rules and references into a single executable guide.
 
-**Baseline:** msw ^2.0.0
+**Baseline:** msw ^2.15.0
 
 ---
 
 ## Abstract
 
-MSW (Mock Service Worker) is a network-level API mocking library for JavaScript/TypeScript. It intercepts HTTP and GraphQL requests using the `http` and `graphql` namespaces, returning mock responses via `HttpResponse`. In tests, `setupServer` (from `msw/node`) intercepts at the request-client level; in the browser, `setupWorker` (from `msw/browser`) uses a Service Worker. MSW v2 completely removed the v1 `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. This guide covers all v2 patterns, testing best practices, and migration from v1.
+MSW (Mock Service Worker) is a network-level API mocking library for JavaScript/TypeScript. It intercepts HTTP and GraphQL requests using the `http` and `graphql` namespaces, returning mock responses via `HttpResponse`; it also mocks Server-Sent Events with `sse` and WebSocket connections with `ws`. In tests, `setupServer` (from `msw/node`) intercepts at the request-client level; in the browser, `setupWorker` (from `msw/browser`) uses a Service Worker; React Native uses `msw/native`. MSW v2 completely removed the v1 `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. This guide covers all v2 patterns, testing best practices, and migration from v1.
 
 ---
 
@@ -78,9 +78,10 @@ Resolver info properties:
 | Property | Type | Description |
 |----------|------|-------------|
 | `request` | `Request` | Standard Fetch API Request object |
-| `params` | `Record<string, string>` | Path parameters from URL pattern |
+| `params` | `Record<string, string \| string[]>` | Path parameters. Repeating params (`:segments+`) yield an array of strings |
 | `cookies` | `Record<string, string>` | Parsed request cookies |
 | `requestId` | `string` | Unique request identifier |
+| `finalize` | `Function` | Schedule a cleanup callback to run after the resolver completes |
 
 ### Rule: Use `HttpResponse` Static Methods Instead of `res(ctx.*)`
 
@@ -113,6 +114,26 @@ Complete v1 to v2 mapping:
 | `res.networkError(msg)` | `HttpResponse.error()` |
 | `res.once(...)` | `http.get(url, resolver, { once: true })` |
 
+### WebSocket Handlers (`ws`)
+
+MSW mocks WebSocket connections too, through the `ws` namespace:
+
+```typescript
+import { ws } from 'msw'
+
+const chat = ws.link('wss://chat.example.com')
+
+export const handlers = [
+  chat.addEventListener('connection', ({ client }) => {
+    client.addEventListener('message', (event) => {
+      client.send(`echo: ${event.data}`)
+    })
+  }),
+]
+```
+
+`ws.link(url: string | URL | RegExp)` matches an endpoint; the `connection` event fires whenever a client opens a matching connection. `client.send()` accepts `string`, `Blob` and `ArrayBuffer`; `link.broadcast()` / `link.broadcastExcept()` reach every connected client; `server.connect()` forwards to the real server — without it, the handler *is* the server. See `references/handler-api.md` for the full member list.
+
 ---
 
 ## 2. Setup & Lifecycle
@@ -132,9 +153,12 @@ import { http, HttpResponse } from 'msw'   // Handlers and utilities
 
 | Export | Import from |
 |--------|-------------|
-| `http`, `graphql`, `HttpResponse`, `delay`, `bypass`, `passthrough` | `'msw'` |
+| `http`, `graphql`, `sse`, `ws`, `HttpResponse`, `delay`, `bypass`, `passthrough` | `'msw'` |
 | `setupServer` | `'msw/node'` |
 | `setupWorker` | `'msw/browser'` |
+| `setupServer` (React Native) | `'msw/native'` |
+
+`msw/node` pulls in Node.js modules such as `http` that do not exist in React Native — replace any `msw/node` import in React Native code with `msw/native`.
 
 ### Rule: Always Use beforeAll/afterEach/afterAll Lifecycle Pattern
 
@@ -185,6 +209,14 @@ import { setupWorker } from 'msw/browser'
 import { handlers } from './handlers'
 export const worker = setupWorker(...handlers)
 ```
+
+Browser setup also needs the worker script on disk before `worker.start()` will work:
+
+```bash
+npx msw init <PUBLIC_DIR> --save
+```
+
+This copies `mockServiceWorker.js` into your public directory — commit it, and verify it is served at `/mockServiceWorker.js`. The `--save` flag records `msw.workerDirectory` in `package.json`, so the script is copied again automatically whenever you install `msw`.
 
 ---
 
@@ -251,33 +283,58 @@ new HttpResponse(null, { headers: { 'Set-Cookie': 'token=abc' } })
 ### Rule: Use `HttpResponse.error()` for Network Failures
 
 ```typescript
-// INCORRECT — throwing crashes the handler
+// INCORRECT — MSW handles this as an unhandled resolver exception, not a network error
 http.get('/api/data', () => { throw new Error('fail') })
 
 // CORRECT — simulates TypeError: Failed to fetch
 http.get('/api/data', () => HttpResponse.error())
 ```
 
-### Rule: Use ReadableStream for Streaming Responses
+Throwing a `Response`/`HttpResponse` is different, and is supported: a thrown `Response` is used as the mocked response, which short-circuits a shared guard.
+
+```typescript
+function withAuthorization(request: Request) {
+  if (!request.headers.get('authorization')) {
+    throw HttpResponse.text('Unauthorized', { status: 401 })
+  }
+}
+
+http.get('/resource', ({ request }) => {
+  withAuthorization(request)
+  return HttpResponse.json({ id: 'abc-123' })
+})
+```
+
+### Rule: Use `sse()` for Server-Sent Events, ReadableStream for Chunked
+
+```typescript
+import { sse } from 'msw'
+
+// Server-Sent Events — the sse handler owns the wire format and headers
+export const handlers = [
+  sse<{ greeting: string }>('/api/events', ({ client }) => {
+    client.send({ id: 'abc-123', event: 'greeting', data: 'Hello, John!' })
+    client.close()
+  }),
+]
+```
 
 ```typescript
 import { http, HttpResponse, delay } from 'msw'
 
+// Non-SSE chunked transfer — a ReadableStream body is still the right tool
 http.get('/api/stream', () => {
   const stream = new ReadableStream({
     async start(controller) {
-      controller.enqueue(new TextEncoder().encode('data: chunk1\n\n'))
+      controller.enqueue(new TextEncoder().encode('chunk1'))
       await delay(100)
-      controller.enqueue(new TextEncoder().encode('data: chunk2\n\n'))
+      controller.enqueue(new TextEncoder().encode('chunk2'))
       controller.close()
     },
   })
 
   return new HttpResponse(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-    },
+    headers: { 'Content-Type': 'text/plain' },
   })
 })
 ```
@@ -298,6 +355,8 @@ await waitFor(() => {
   expect(screen.getByText('Welcome, John!')).toBeInTheDocument()
 })
 ```
+
+Where the request's *validity* is the point, validate it inside the handler and return an error response. **Exception:** one-way requests that leave no trace in the application (analytics, monitoring) may be asserted directly via the life-cycle events API (`server.events.on('request:start', ...)`).
 
 ### Rule: Use `server.use()` for Per-Test Overrides
 
@@ -343,7 +402,7 @@ server.listen({ onUnhandledRequest: 'error' })
 | `'warn'` (default) | Console warning, passes through |
 | `'error'` | Throws, test fails |
 | `'bypass'` | Silent, passes through |
-| Custom function | Conditional handling |
+| Custom function | Conditional handling. Opts you out of the built-in common-asset exemption — re-apply it with `isCommonAssetRequest(request)` |
 
 ---
 
@@ -412,8 +471,10 @@ http.get('/api/user', async ({ request }) => {
 ### Rule: Use Explicit Milliseconds with `delay()`
 
 ```typescript
-// INCORRECT — delay() is instant in Node.js
+// INCORRECT — in Node.js the realistic delay is cut down ("negated to prevent
+// it affecting the test performance"), so neither is observable in a test
 await delay()
+await delay('real')       // Sets the same realistic response time — same result
 
 // CORRECT
 await delay(200)          // Always waits 200ms
@@ -422,7 +483,7 @@ await delay('infinite')   // Never resolves — test timeout handling
 
 | Usage | Browser | Node.js |
 |-------|---------|---------|
-| `delay()` | Random realistic | Instant (negated) |
+| `delay()` | Random ~100-400ms | Negated |
 | `delay(ms)` | Waits `ms` | Waits `ms` |
-| `delay('real')` | Random realistic | Random realistic |
+| `delay('real')` | Random ~100-400ms | Negated — identical to `delay()` |
 | `delay('infinite')` | Never resolves | Never resolves |

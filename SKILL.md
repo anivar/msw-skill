@@ -4,18 +4,18 @@ description: >
   MSW (Mock Service Worker) v2 best practices, patterns, and API guidance for
   API mocking in JavaScript/TypeScript tests and development. Covers handler
   design, server setup, response construction, testing patterns, GraphQL, and
-  v1-to-v2 migration. Baseline: msw ^2.0.0.
+  v1-to-v2 migration. Baseline: msw ^2.15.0.
   Triggers on: msw imports, http.get, http.post, HttpResponse, setupServer,
-  setupWorker, graphql.query, mentions of "msw", "mock service worker",
-  "api mocking", or "msw v2".
+  setupWorker, graphql.query, sse, ws.link, mentions of "msw",
+  "mock service worker", "api mocking", or "msw v2".
 license: MIT
 user-invocable: false
 agentic: false
-compatibility: "TypeScript/JavaScript projects using msw ^2.0.0"
+compatibility: "TypeScript/JavaScript projects using msw ^2.15.0"
 metadata:
   author: Anivar Aravind
   author_url: https://anivar.net
-  version: 1.0.0
+  version: 1.1.0
   tags: msw, mocking, api, testing, http, graphql, service-worker, fetch
 ---
 
@@ -25,7 +25,7 @@ metadata:
 
 ## When to Use MSW
 
-MSW is for **API mocking at the network level** — intercepting HTTP/GraphQL requests in tests, Storybook, and local development without modifying application code.
+MSW is for **API mocking at the network level** — intercepting HTTP, GraphQL, Server-Sent Events (`sse`) and WebSocket (`ws`) traffic in tests, Storybook, and local development without modifying application code.
 
 | Need | Recommended Tool |
 |------|-----------------|
@@ -40,9 +40,10 @@ MSW is for **API mocking at the network level** — intercepting HTTP/GraphQL re
 
 ```typescript
 // Imports
-import { http, HttpResponse, graphql, delay, bypass, passthrough } from 'msw'
+import { http, HttpResponse, graphql, sse, ws, delay, bypass, passthrough } from 'msw'
 import { setupServer } from 'msw/node'     // tests, SSR
 import { setupWorker } from 'msw/browser'  // Storybook, dev
+// React Native: import { setupServer } from 'msw/native'
 
 // Handler
 http.get('/api/user/:id', async ({ request, params, cookies }) => {
@@ -84,7 +85,7 @@ it.concurrent('name', server.boundary(async () => {
 | Rule | File | Summary |
 |------|------|---------|
 | Use `http` namespace | `handler-use-http-namespace.md` | `rest` is removed in v2 — use `http.get()`, `http.post()` |
-| No query params in URL | `handler-no-query-params.md` | Query params in predicates silently match nothing |
+| No query params in URL | `handler-no-query-params.md` | Query params in predicates are stripped — the handler over-matches the path |
 | v2 resolver signature | `handler-resolver-v2.md` | Use `({ request, params, cookies })`, not `(req, res, ctx)` |
 | v2 response construction | `handler-response-v2.md` | Use `HttpResponse.json()`, not `res(ctx.json())` |
 
@@ -108,8 +109,8 @@ it.concurrent('name', server.boundary(async () => {
 | Rule | File | Summary |
 |------|------|---------|
 | HttpResponse for cookies | `response-use-httpresponse.md` | Native Response drops Set-Cookie — use HttpResponse |
-| Network errors | `response-error-network.md` | Use `HttpResponse.error()`, don't throw in resolvers |
-| Streaming | `response-streaming.md` | Use ReadableStream for SSE/chunked responses |
+| Network errors | `response-error-network.md` | Use `HttpResponse.error()`; don't throw plain `Error`s |
+| Streaming | `response-streaming.md` | `sse()` for Server-Sent Events; ReadableStream for chunked |
 
 ### Test Patterns (HIGH)
 
@@ -132,7 +133,7 @@ it.concurrent('name', server.boundary(async () => {
 | Rule | File | Summary |
 |------|------|---------|
 | bypass vs passthrough | `util-bypass-vs-passthrough.md` | `bypass()` = new request; `passthrough()` = let through |
-| delay behavior | `util-delay-behavior.md` | `delay()` is instant in Node.js — use explicit ms |
+| delay behavior | `util-delay-behavior.md` | `delay()` and `delay('real')` give no observable latency in Node.js — use explicit ms |
 
 ## Response Method Quick Reference
 

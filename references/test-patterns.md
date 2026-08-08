@@ -48,10 +48,22 @@ afterAll(() => server.close())
 
 ```javascript
 // jest.config.js
+// npm i -D jest-fixed-jsdom
 module.exports = {
   setupFilesAfterEnv: ['./jest.setup.ts'],
+  // jest-environment-jsdom intentionally replaces Node.js built-ins with
+  // polyfills, which breaks MSW 2.x's Fetch primitives. jest-fixed-jsdom is a
+  // superset of it with the built-in Node.js modules added back.
+  testEnvironment: 'jest-fixed-jsdom',
+  testEnvironmentOptions: {
+    // JSDOM defaults to the "browser" export condition, which breaks
+    // `import { setupServer } from 'msw/node'`.
+    customExportConditions: [''],
+  },
 }
 ```
+
+Upstream describes the `jest-fixed-jsdom` environment as a workaround and recommends Vitest, which has none of the Node.js globals issues.
 
 ## Per-Test Overrides
 
@@ -347,6 +359,8 @@ function renderWithApollo(ui: React.ReactElement) {
 ```
 
 ## Conditional Browser Mocking
+
+Browser mocking requires the worker script on disk first — run `npx msw init <PUBLIC_DIR> --save` and commit the generated `mockServiceWorker.js` (see `rules/setup-file-organization.md`). Without it, `worker.start()` fails because the registration 404s.
 
 Enable mocking only in development:
 
