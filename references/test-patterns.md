@@ -19,7 +19,7 @@
 import { beforeAll, afterEach, afterAll } from 'vitest'
 import { server } from './src/mocks/node'
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 ```
@@ -41,7 +41,7 @@ export default defineConfig({
 // jest.setup.ts
 import { server } from './src/mocks/node'
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 ```
@@ -371,7 +371,7 @@ async function enableMocking() {
     return
   }
   const { worker } = await import('./mocks/browser')
-  return worker.start({ onUnhandledRequest: 'bypass' })
+  return worker.start({ onUnhandledFrame: 'bypass' })
 }
 
 enableMocking().then(() => {
@@ -386,7 +386,7 @@ enableMocking().then(() => {
 import { initialize, mswLoader } from 'msw-storybook-addon'
 import { handlers } from '../src/mocks/handlers'
 
-initialize({ onUnhandledRequest: 'bypass' })
+initialize({ onUnhandledFrame: 'bypass' })
 
 export const parameters = {
   msw: { handlers },

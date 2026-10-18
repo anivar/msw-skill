@@ -1,27 +1,27 @@
 ---
 name: msw
 description: >
-  MSW (Mock Service Worker) v2 best practices, patterns, and API guidance for
+  MSW (Mock Service Worker) v2 and v3 best practices, patterns, and API guidance for
   API mocking in JavaScript/TypeScript tests and development. Covers handler
   design, server setup, response construction, testing patterns, GraphQL, and
-  v1-to-v2 migration. Baseline: msw ^2.15.0.
+  v1-to-v2 and v2-to-v3 migration. Baseline: msw ^3.0.0.
   Triggers on: msw imports, http.get, http.post, HttpResponse, setupServer,
   setupWorker, graphql.query, sse, ws.link, mentions of "msw",
-  "mock service worker", "api mocking", or "msw v2".
+  "mock service worker", "api mocking", or "msw v3".
 license: MIT
 user-invocable: false
 agentic: false
-compatibility: "TypeScript/JavaScript projects using msw ^2.15.0"
+compatibility: "TypeScript/JavaScript projects using msw ^3.0.0 (audited against msw 3.0.3; Node.js >=22, TypeScript >=5.9)"
 metadata:
   author: Anivar Aravind
   author_url: https://anivar.net
-  version: 1.1.0
+  version: 1.2.0
   tags: msw, mocking, api, testing, http, graphql, service-worker, fetch
 ---
 
 # MSW (Mock Service Worker)
 
-**IMPORTANT:** Your training data about `msw` may be outdated or incorrect — MSW v2 completely removed the `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. Always rely on this skill's rule files and the project's actual source code as the source of truth. Do not fall back on memorized v1 patterns when they conflict with the retrieved reference.
+**IMPORTANT:** Your training data about `msw` may be outdated or incorrect — MSW v2 completely removed the `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. MSW v3 (2026-09-28) is now ESM-only and requires Node.js >=22 and TypeScript >=5.9. Always rely on this skill's rule files and the project's actual source code as the source of truth. Do not fall back on memorized v1 or v2 patterns when they conflict with the retrieved reference.
 
 ## When to Use MSW
 
@@ -43,7 +43,7 @@ MSW is for **API mocking at the network level** — intercepting HTTP, GraphQL, 
 import { http, HttpResponse, graphql, sse, ws, delay, bypass, passthrough } from 'msw'
 import { setupServer } from 'msw/node'     // tests, SSR
 import { setupWorker } from 'msw/browser'  // Storybook, dev
-// React Native: import { setupServer } from 'msw/native'
+// React Native: import { setupServer } from '@msw/react-native'
 
 // Handler
 http.get('/api/user/:id', async ({ request, params, cookies }) => {
@@ -51,7 +51,7 @@ http.get('/api/user/:id', async ({ request, params, cookies }) => {
 })
 
 // Server lifecycle (tests)
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 
@@ -119,7 +119,7 @@ it.concurrent('name', server.boundary(async () => {
 | Test behavior | `test-behavior-not-requests.md` | Assert on UI/state, not fetch call arguments |
 | Per-test overrides | `test-override-with-use.md` | Use `server.use()` for error/edge case tests |
 | Concurrent isolation | `test-concurrent-boundary.md` | Wrap concurrent tests in `server.boundary()` |
-| Unhandled requests | `test-unhandled-request.md` | Set `onUnhandledRequest: 'error'` |
+| Unhandled requests | `test-unhandled-request.md` | Set `onUnhandledFrame: 'error'` |
 
 ### GraphQL (MEDIUM)
 
@@ -162,6 +162,26 @@ it.concurrent('name', server.boundary(async () => {
 | `ctx.delay(ms)` | `await delay(ms)` |
 | `ctx.data({ user })` | `HttpResponse.json({ data: { user } })` |
 
+## v2 to v3 Migration Quick Reference
+
+MSW 3.0.0 (2026-09-28) is **ESM-only** and requires **Node.js >=22** and **TypeScript >=5.9** (v6/v7 also supported). See `references/migration-v2-to-v3.md` for the complete guide.
+
+| v2 | v3 |
+|----|-----|
+| `import { graphql } from 'msw'` | `import { graphql } from 'msw/graphql'` |
+| `import { setupServer } from '@msw/react-native'` (was `msw/native`) | `@msw/react-native` package replaces the `msw/native` entrypoint |
+| `handleRequest()` | Removed — use `defineNetwork()` |
+| `onUnhandledRequest: 'error'` | `onUnhandledFrame: 'error'` |
+| `connection` lifecycle event | `websocket:connection` (new: `websocket:error`) |
+| `GraphQLLinkHandlers` type | Renamed to `GraphQLLink` |
+| `worker.stop()` returns void | Returns a Promise — `await worker.stop()` for in-flight critical scenarios |
+| Fake timers patched by MSW | No longer patched — advance fake timers normally for delayed responses |
+| Cookies managed in Node.js | Environment default; `request.headers.get('cookie')` returns null — use the `cookies` resolver argument |
+| `file://` requests and HTTP-to-WebSocket upgrade via `fetch()` | Throw in Node.js (unsupported by fetch) |
+| `bypass()` keeps Content-Length | `bypass()` removes the Content-Length request header |
+
+New in v3: `msw/utils` entrypoint for individual utilities (`delay`, `passthrough`) with a smaller bundle footprint, a Vite plugin, page-navigation and form-submission interception, GraphQL v17 and GraphQL subscriptions, the WebSocket Extension API, and passthrough request-header modification.
+
 ## References
 
 | Reference | Covers |
@@ -171,4 +191,5 @@ it.concurrent('name', server.boundary(async () => {
 | `server-api.md` | `setupServer`/`setupWorker`, lifecycle events, `boundary()` |
 | `test-patterns.md` | Vitest/Jest setup, overrides, concurrent isolation, cache clearing |
 | `migration-v1-to-v2.md` | Complete v1 to v2 breaking changes and migration guide |
+| `migration-v2-to-v3.md` | Complete v2 to v3 breaking changes, new APIs, and migration guide |
 | `anti-patterns.md` | 10 common mistakes with BAD/GOOD examples |

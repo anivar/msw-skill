@@ -6,7 +6,7 @@ An AI agent skill for writing, reviewing, and debugging MSW (Mock Service Worker
 
 ## The Problem
 
-AI agents often generate outdated MSW v1 patterns — `rest.get()` instead of `http.get()`, `res(ctx.json(...))` instead of `HttpResponse.json()`, `(req, res, ctx)` instead of `({ request, params })` — and miss critical testing best practices like `server.boundary()` for concurrent tests, `onUnhandledRequest: 'error'`, and proper lifecycle hook setup. These produce code that fails to compile or silently misbehaves at runtime.
+AI agents often generate outdated MSW v1 patterns — `rest.get()` instead of `http.get()`, `res(ctx.json(...))` instead of `HttpResponse.json()`, `(req, res, ctx)` instead of `({ request, params })` — and miss critical testing best practices like `server.boundary()` for concurrent tests, `onUnhandledFrame: 'error'`, and proper lifecycle hook setup. These produce code that fails to compile or silently misbehaves at runtime.
 
 ## This Solution
 
@@ -26,7 +26,7 @@ npx skills add https://github.com/anivar/msw-skill
 
 ## Baseline
 
-- msw ^2.15.0
+- msw ^3.0.0
 - TypeScript/JavaScript
 
 ## What's Inside
@@ -55,7 +55,7 @@ Each rule file contains:
 |-----------|--------|
 | `handler-api.md` | `http.*` and `graphql.*` methods, URL predicates, path params, handler options |
 | `response-api.md` | `HttpResponse` class, all 7 static methods, cookie handling |
-| `server-api.md` | `setupServer`/`setupWorker`, lifecycle events, `boundary()`, `onUnhandledRequest` |
+| `server-api.md` | `setupServer`/`setupWorker`, lifecycle events, `boundary()`, `onUnhandledFrame` |
 | `test-patterns.md` | Vitest/Jest setup, per-test overrides, concurrent isolation, cache clearing |
 | `migration-v1-to-v2.md` | Complete v1 to v2 breaking changes with migration mapping |
 | `anti-patterns.md` | 10 common mistakes with BAD/GOOD examples |

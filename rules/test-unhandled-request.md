@@ -1,22 +1,22 @@
 ---
-title: Set `onUnhandledRequest: 'error'` to Catch Missing Handlers
+title: Set `onUnhandledFrame: 'error'` to Catch Missing Handlers
 impact: HIGH
 description: Configure the server to throw on unhandled requests so missing handlers fail tests loudly instead of silently passing through.
 tags: testing, unhandled, error, configuration, strictness
 ---
 
-# Set `onUnhandledRequest: 'error'`
+# Set `onUnhandledFrame: 'error'`
 
 ## Problem
 
-The default `onUnhandledRequest` behavior is `'warn'` — unexpected requests print a warning but silently pass through to the actual network. Tests pass even though a handler is missing.
+The default `onUnhandledFrame` behavior is `'warn'` — unexpected requests print a warning but silently pass through to the actual network. Tests pass even though a handler is missing.
 
 ## Incorrect
 
 ```typescript
 // Default: unhandled requests produce a console warning and pass through
 const server = setupServer(...handlers)
-server.listen() // default: { onUnhandledRequest: 'warn' }
+server.listen() // default: { onUnhandledFrame: 'warn' }
 
 // If you forget a handler for /api/settings, the test silently
 // hits the real API (or fails with a network error, not a clear message)
@@ -28,7 +28,7 @@ server.listen() // default: { onUnhandledRequest: 'warn' }
 const server = setupServer(...handlers)
 
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'error' })
+  server.listen({ onUnhandledFrame: 'error' })
 })
 
 // Now a missing handler throws:
@@ -48,4 +48,4 @@ beforeAll(() => {
 
 ## Why
 
-`onUnhandledRequest: 'error'` turns missing handlers into immediate test failures with clear error messages. This catches typos in URLs, forgotten handlers for new endpoints, and accidental real network requests during testing.
+`onUnhandledFrame: 'error'` turns missing handlers into immediate test failures with clear error messages. This catches typos in URLs, forgotten handlers for new endpoints, and accidental real network requests during testing.

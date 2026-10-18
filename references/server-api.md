@@ -7,7 +7,7 @@
 - [Server Methods](#server-methods)
 - [Worker Methods](#worker-methods)
 - [Lifecycle Events](#lifecycle-events)
-- [onUnhandledRequest Strategies](#onunhandledrequest-strategies)
+- [onUnhandledFrame Strategies](#onunhandledrequest-strategies)
 - [server.boundary()](#serverboundary)
 
 ## setupServer (Node.js)
@@ -52,7 +52,7 @@ server.listen()
 
 // With options
 server.listen({
-  onUnhandledRequest: 'error',
+  onUnhandledFrame: 'error',
 })
 ```
 
@@ -119,7 +119,7 @@ await worker.start()
 
 // With options
 await worker.start({
-  onUnhandledRequest: 'error',
+  onUnhandledFrame: 'error',
   serviceWorker: {
     url: '/mockServiceWorker.js',
   },
@@ -193,7 +193,7 @@ server.events.removeListener('request:start', listener)
 server.events.removeAllListeners()
 ```
 
-## onUnhandledRequest Strategies
+## onUnhandledFrame Strategies
 
 | Strategy | Behavior |
 |----------|----------|
@@ -207,9 +207,9 @@ server.events.removeAllListeners()
 ### Built-in strategies
 
 ```typescript
-server.listen({ onUnhandledRequest: 'warn' })   // default
-server.listen({ onUnhandledRequest: 'error' })   // recommended for tests
-server.listen({ onUnhandledRequest: 'bypass' })  // silent passthrough
+server.listen({ onUnhandledFrame: 'warn' })   // default
+server.listen({ onUnhandledFrame: 'error' })   // recommended for tests
+server.listen({ onUnhandledFrame: 'bypass' })  // silent passthrough
 ```
 
 ### Custom strategy
@@ -218,7 +218,7 @@ server.listen({ onUnhandledRequest: 'bypass' })  // silent passthrough
 import { isCommonAssetRequest } from 'msw'
 
 server.listen({
-  onUnhandledRequest(request, print) {
+  onUnhandledFrame(request, print) {
     // Supplying a custom callback OPTS OUT of MSW's built-in
     // common-asset exemption — re-apply it manually.
     if (isCommonAssetRequest(request)) {
