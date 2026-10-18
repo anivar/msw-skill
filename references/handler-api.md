@@ -282,7 +282,7 @@ import { ws } from 'msw'
 const chat = ws.link('wss://chat.example.com')
 
 export const handlers = [
-  chat.addEventListener('connection', ({ client }) => {
+  chat.addEventListener('websocket:connection', ({ client }) => {
     client.addEventListener('message', (event) => {
       client.send(`echo: ${event.data}`)
     })

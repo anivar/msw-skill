@@ -23,9 +23,9 @@ Audited against **msw 2.15.0** (the current release) and against the official do
 - **WebSocket coverage (`ws`).** `references/handler-api.md` and `AGENTS.md` document `ws.link()`, the `connection` event, client/server members and broadcasting. The skill previously implied MSW could not mock WebSockets.
 - **`finalize`.** Documented on the resolver-info tables and in a dedicated section: LIFO ordering, runs even when the resolver throws, cannot be awaited.
 - **Custom predicate functions.** The predicate receives `request` and `cookies`; a boolean predicate loses path-parameter parsing, so the extended `{ matches, params }` result with `matchRequestUrl()` is documented alongside it. Cross-linked from anti-pattern #2.
-- **`isCommonAssetRequest`.** A custom `onUnhandledRequest` callback opts out of MSW's built-in common-asset exemption; the custom-strategy example now re-applies it.
+- **`isCommonAssetRequest`.** A custom `onUnhandledFrame` callback opts out of MSW's built-in common-asset exemption; the custom-strategy example now re-applies it.
 - **`npx msw init <PUBLIC_DIR> --save`.** Browser setup previously produced a `worker.start()` that 404s, because the skill never mentioned generating `mockServiceWorker.js`.
-- **`msw/native` for React Native**, added to the import maps.
+- **`@msw/react-native` for React Native**, added to the import maps.
 - **A working Jest recipe.** `jest-environment-jsdom` breaks MSW 2.x's Fetch primitives; the config now uses `jest-fixed-jsdom` and `testEnvironmentOptions.customExportConditions`.
 - **Environment requirements in the migration guide** — Node.js 18.0.0, TypeScript 4.7 — plus `printHandlers()` → `listHandlers()` and `req.passthrough()` → `passthrough()` in the Removed APIs table.
 - **GraphQL handler options and non-string predicates** — `RegExp`, `DocumentNode`/`TypedDocumentNode`, and `{ once: true }`.
@@ -40,3 +40,14 @@ Audited against **msw 2.15.0** (the current release) and against the official do
 - `HttpResponse.xml()` — the skill lists `text/xml`, which is what the implementation produces; the documentation says `application/xml`. Left as is.
 - The bare-wildcard example (`http.get('/files/*')`) still uses the named `:path*` form. The key for an unnamed group is not documented.
 - The `sse()` passthrough form (`server.connect()`) is not documented in this skill: it could not be verified in the audit environment, and unverified examples are not published.
+
+## 1.2.0
+
+Updated for **msw 3.0.0** (released 2026-09-28), audited against **msw 3.0.3**. Baseline raised from `^2.15.0` to `^3.0.0` in `SKILL.md`, `AGENTS.md` and `README.md`; `metadata.version` is now 1.2.0.
+
+### Changed
+
+- **v3 API renames applied across the skill**: `onUnhandledRequest` is now `onUnhandledFrame` in all setup and lifecycle examples; the WebSocket `connection` listener is now `websocket:connection`; React Native guidance now uses the `@msw/react-native` package, since the `msw/native` entrypoint no longer exists.
+- **New requirements documented**: MSW v3 is ESM-only and requires Node.js >=22 and TypeScript >=5.9. The abstract and the IMPORTANT note in `SKILL.md` state both, so agents do not apply v2 patterns to a v3 runtime.
+- **New `references/migration-v2-to-v3.md`**: the complete v2 to v3 migration — requirement table, every renamed/removed API (`handleRequest()` to `defineNetwork()`, `GraphQLLinkHandlers` to `GraphQLLink`, `worker.stop()` now async, fake timers no longer patched, Node cookie behavior, `bypass()` dropping Content-Length), the new `msw/utils` entrypoint, Vite plugin, WebSocket Extension API, GraphQL v17 and subscriptions, and a nine-step migration checklist.
+- **v2 to v3 quick-reference table in `SKILL.md`**, alongside the existing v1 to v2 table, so migration needs are answered in place without opening the reference.

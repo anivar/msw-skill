@@ -2,13 +2,13 @@
 
 > This document is for AI agents and LLMs to follow when writing, reviewing, or debugging MSW (Mock Service Worker) handlers, server setup, and test patterns. It compiles all rules and references into a single executable guide.
 
-**Baseline:** msw ^2.15.0
+**Baseline:** msw ^3.0.0 (audited against 3.0.3; ESM-only, Node.js >=22, TypeScript >=5.9)
 
 ---
 
 ## Abstract
 
-MSW (Mock Service Worker) is a network-level API mocking library for JavaScript/TypeScript. It intercepts HTTP and GraphQL requests using the `http` and `graphql` namespaces, returning mock responses via `HttpResponse`; it also mocks Server-Sent Events with `sse` and WebSocket connections with `ws`. In tests, `setupServer` (from `msw/node`) intercepts at the request-client level; in the browser, `setupWorker` (from `msw/browser`) uses a Service Worker; React Native uses `msw/native`. MSW v2 completely removed the v1 `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. This guide covers all v2 patterns, testing best practices, and migration from v1.
+MSW (Mock Service Worker) is a network-level API mocking library for JavaScript/TypeScript. It intercepts HTTP and GraphQL requests using the `http` and `graphql` namespaces, returning mock responses via `HttpResponse`; it also mocks Server-Sent Events with `sse` and WebSocket connections with `ws`. In tests, `setupServer` (from `msw/node`) intercepts at the request-client level; in the browser, `setupWorker` (from `msw/browser`) uses a Service Worker; React Native uses `@msw/react-native`. MSW v2 completely removed the v1 `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. MSW v3 (2026-09-28) is ESM-only and requires Node.js >=22 and TypeScript >=5.9; it also renamed `onUnhandledRequest` to `onUnhandledFrame` and the WebSocket `connection` event to `websocket:connection`. This guide covers v2 and v3 patterns, testing best practices, and migration from v1 and v2.
 
 ---
 
@@ -124,7 +124,7 @@ import { ws } from 'msw'
 const chat = ws.link('wss://chat.example.com')
 
 export const handlers = [
-  chat.addEventListener('connection', ({ client }) => {
+  chat.addEventListener('websocket:connection', ({ client }) => {
     client.addEventListener('message', (event) => {
       client.send(`echo: ${event.data}`)
     })
@@ -156,9 +156,9 @@ import { http, HttpResponse } from 'msw'   // Handlers and utilities
 | `http`, `graphql`, `sse`, `ws`, `HttpResponse`, `delay`, `bypass`, `passthrough` | `'msw'` |
 | `setupServer` | `'msw/node'` |
 | `setupWorker` | `'msw/browser'` |
-| `setupServer` (React Native) | `'msw/native'` |
+| `setupServer` (React Native) | `'@msw/react-native'` |
 
-`msw/node` pulls in Node.js modules such as `http` that do not exist in React Native — replace any `msw/node` import in React Native code with `msw/native`.
+`msw/node` pulls in Node.js modules such as `http` that do not exist in React Native — replace any `msw/node` import in React Native code with `@msw/react-native`.
 
 ### Rule: Always Use beforeAll/afterEach/afterAll Lifecycle Pattern
 
@@ -170,7 +170,7 @@ beforeAll(() => server.listen())
 afterAll(() => server.close())
 
 // CORRECT
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
 ```
@@ -390,11 +390,11 @@ it.concurrent('member view', server.boundary(async () => {
 }))
 ```
 
-### Rule: Set `onUnhandledRequest: 'error'`
+### Rule: Set `onUnhandledFrame: 'error'`
 
 ```typescript
 // Default 'warn' silently passes through — missing handlers don't fail tests
-server.listen({ onUnhandledRequest: 'error' })
+server.listen({ onUnhandledFrame: 'error' })
 ```
 
 | Strategy | Behavior |

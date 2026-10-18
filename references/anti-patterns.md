@@ -10,7 +10,7 @@
 6. [Not awaiting request.json()](#6-not-awaiting-requestjson)
 7. [Using native Response for cookies](#7-using-native-response-for-cookies)
 8. [Not using server.boundary() for concurrent tests](#8-not-using-serverboundary-for-concurrent-tests)
-9. [Not setting onUnhandledRequest: 'error'](#9-not-setting-onunhandledrequest-error)
+9. [Not setting onUnhandledFrame: 'error'](#9-not-setting-onunhandledrequest-error)
 10. [Throwing an Error to simulate a network failure](#10-throwing-an-error-to-simulate-a-network-failure)
 
 ## 1. Using v1 `rest` namespace
@@ -149,14 +149,14 @@ it.concurrent('test A', server.boundary(async () => {
 }))
 ```
 
-## 9. Not setting onUnhandledRequest: 'error'
+## 9. Not setting onUnhandledFrame: 'error'
 
 ```typescript
 // BAD: unhandled requests silently pass through
 server.listen()
 
 // GOOD: missing handlers fail the test
-server.listen({ onUnhandledRequest: 'error' })
+server.listen({ onUnhandledFrame: 'error' })
 ```
 
 ## 10. Throwing an Error to simulate a network failure

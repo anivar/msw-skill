@@ -38,10 +38,10 @@ import { http, HttpResponse, graphql } from 'msw'
 | `http`, `graphql`, `sse`, `ws`, `HttpResponse`, `delay`, `bypass`, `passthrough` | `'msw'` |
 | `setupServer` | `'msw/node'` |
 | `setupWorker` | `'msw/browser'` |
-| `setupServer` (React Native) | `'msw/native'` |
+| `setupServer` (React Native) | `'@msw/react-native'` |
 
 ## Why
 
 MSW v2 uses subpath exports to tree-shake correctly. Importing `setupServer` from `'msw'` produces an import error. The split ensures browser code doesn't bundle Node.js dependencies and vice versa.
 
-React Native has a third subpath, `'msw/native'`. It exports the same `setupServer` API but ships the interceptors relevant to the React Native environment. `msw/node` pulls in Node.js modules such as `http` that do not exist in React Native, so replace any `msw/node` import in React Native code with `msw/native`.
+React Native has a third subpath, `'@msw/react-native'`. It exports the same `setupServer` API but ships the interceptors relevant to the React Native environment. `msw/node` pulls in Node.js modules such as `http` that do not exist in React Native, so replace any `msw/node` import in React Native code with `@msw/react-native`.
