@@ -40,7 +40,13 @@ MSW is for **API mocking at the network level** — intercepting HTTP, GraphQL, 
 
 ```typescript
 // Imports
-import { http, HttpResponse, graphql, sse, ws, delay, bypass, passthrough } from 'msw'
+import { http, HttpResponse } from 'msw/http'
+import { graphql } from 'msw/graphql'
+import { sse } from 'msw/sse'
+import { ws } from 'msw/ws'
+import { delay } from 'msw/utils/delay'
+import { bypass } from 'msw/utils/bypass'
+import { passthrough } from 'msw/utils/passthrough'
 import { setupServer } from 'msw/node'     // tests, SSR
 import { setupWorker } from 'msw/browser'  // Storybook, dev
 // React Native: import { setupServer } from '@msw/react-native'
@@ -164,23 +170,26 @@ it.concurrent('name', server.boundary(async () => {
 
 ## v2 to v3 Migration Quick Reference
 
-MSW 3.0.0 (2026-09-28) is **ESM-only** and requires **Node.js >=22** and **TypeScript >=5.9** (v6/v7 also supported). See `references/migration-v2-to-v3.md` for the complete guide.
+MSW 3.0.0 (2026-09-28) is **ESM-only** and requires **Node.js >=22** and **TypeScript >=5.9** (v6/v7 also supported). The headline change: all exports moved from the package root to subpath entrypoints. See `references/migration-v2-to-v3.md` for the complete guide (and the official codemods).
 
 | v2 | v3 |
 |----|-----|
+| `import { http, HttpResponse } from 'msw'` | `import { http, HttpResponse } from 'msw/http'` |
 | `import { graphql } from 'msw'` | `import { graphql } from 'msw/graphql'` |
-| `import { setupServer } from '@msw/react-native'` (was `msw/native`) | `@msw/react-native` package replaces the `msw/native` entrypoint |
-| `handleRequest()` | Removed — use `defineNetwork()` |
-| `onUnhandledRequest: 'error'` | `onUnhandledFrame: 'error'` |
-| `connection` lifecycle event | `websocket:connection` (new: `websocket:error`) |
+| `import { ws } from 'msw'` / `import { sse } from 'msw'` | `msw/ws` / `msw/sse` |
+| `import { delay } from 'msw'` | `import { delay } from 'msw/utils/delay'` |
+| `import { bypass, passthrough } from 'msw'` | `msw/utils/bypass`, `msw/utils/passthrough` |
+| `graphql.query(...)` on the namespace | Removed — link-first: `graphql.link(url).query(...)` |
+| `import { setupServer } from 'msw/native'` | `@msw/react-native` package replaces the `msw/native` entrypoint |
+| `handleRequest()` | Removed — use `getResponse()` (or experimental `defineNetwork()` for custom networks) |
+| `onUnhandledRequest: 'error'` | `onUnhandledFrame: 'error'` — covers requests AND WebSocket connections |
+| Custom callback `(request, print)` | Single `{ frame, defaults }` object; narrow on `frame.protocol`, call `defaults.warn()` |
+| `server.events.on('connection', ...)` | `server.events.on('websocket:connection', ...)` — life-cycle API only; the `ws` link's own `addEventListener('connection')` keeps its name |
 | `GraphQLLinkHandlers` type | Renamed to `GraphQLLink` |
+| `LifeCycleEventsMap` from `msw` | Per-protocol maps (`HttpNetworkFrameEventMap`, `WebSocketNetworkFrameEventMap`) from `msw/experimental` |
 | `worker.stop()` returns void | Returns a Promise — `await worker.stop()` for in-flight critical scenarios |
-| Fake timers patched by MSW | No longer patched — advance fake timers normally for delayed responses |
-| Cookies managed in Node.js | Environment default; `request.headers.get('cookie')` returns null — use the `cookies` resolver argument |
-| `file://` requests and HTTP-to-WebSocket upgrade via `fetch()` | Throw in Node.js (unsupported by fetch) |
-| `bypass()` keeps Content-Length | `bypass()` removes the Content-Length request header |
 
-New in v3: `msw/utils` entrypoint for individual utilities (`delay`, `passthrough`) with a smaller bundle footprint, a Vite plugin, page-navigation and form-submission interception, GraphQL v17 and GraphQL subscriptions, the WebSocket Extension API, and passthrough request-header modification.
+New in v3: `msw/vite` plugin (serves the worker script — no more copying `mockServiceWorker.js` into public), GraphQL v17 and link-first subscriptions, the WebSocket Extension API, page-navigation and form-submission interception, passthrough request-header modification, and per-utility `msw/utils/*` modules for smaller bundles.
 
 ## References
 

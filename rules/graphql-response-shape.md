@@ -15,7 +15,7 @@ v1 used `res(ctx.data({ user: ... }))` for GraphQL responses. In v2, you return 
 
 ```typescript
 // BUG: ctx.data() is removed in v2
-import { graphql } from 'msw'
+import { graphql } from 'msw/graphql'
 
 graphql.query('GetUser', (req, res, ctx) => {
   return res(ctx.data({ user: { id: '1', name: 'John' } }))
@@ -25,7 +25,8 @@ graphql.query('GetUser', (req, res, ctx) => {
 ## Correct
 
 ```typescript
-import { graphql, HttpResponse } from 'msw'
+import { graphql } from 'msw/graphql'
+import { HttpResponse } from 'msw/http'
 
 // Success response
 graphql.query('GetUser', ({ variables }) => {

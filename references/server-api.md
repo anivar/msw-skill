@@ -214,23 +214,27 @@ server.listen({ onUnhandledFrame: 'bypass' })  // silent passthrough
 
 ### Custom strategy
 
+v3 changed the callback shape: a single `{ frame, defaults }` object instead of `(request, print)`. Narrow on `frame.protocol` before reading data, and call a method on `defaults` (`defaults.warn()`, `defaults.error()`) to use a built-in strategy.
+
 ```typescript
-import { isCommonAssetRequest } from 'msw'
+import { isCommonAssetRequest } from 'msw/utils/is-common-asset-request'
 
 server.listen({
-  onUnhandledFrame(request, print) {
+  onUnhandledFrame({ frame, defaults }) {
     // Supplying a custom callback OPTS OUT of MSW's built-in
     // common-asset exemption — re-apply it manually.
-    if (isCommonAssetRequest(request)) {
+    if (frame.protocol === 'http' && isCommonAssetRequest(frame.data.request)) {
       return
     }
 
-    const url = new URL(request.url)
-    if (url.hostname === 'cdn.example.com') {
-      return
+    if (frame.protocol === 'http') {
+      const url = new URL(frame.data.request.url)
+      if (url.hostname === 'cdn.example.com') {
+        return
+      }
     }
 
-    print.error()
+    defaults.error()
   },
 })
 ```

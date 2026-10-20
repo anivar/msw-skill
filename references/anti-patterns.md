@@ -21,7 +21,7 @@ import { rest } from 'msw'
 rest.get('/api/user', (req, res, ctx) => res(ctx.json({ name: 'John' })))
 
 // GOOD
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse } from 'msw/http'
 http.get('/api/user', () => HttpResponse.json({ name: 'John' }))
 ```
 

@@ -27,8 +27,9 @@ import { setupServer } from 'msw/node'
 // Browser (Storybook, development)
 import { setupWorker } from 'msw/browser'
 
-// Handlers and response utilities come from 'msw'
-import { http, HttpResponse, graphql } from 'msw'
+// Handlers and response utilities come from 'msw/http' (v3 subpath)
+import { http, HttpResponse } from 'msw/http'
+import { graphql } from 'msw/graphql'
 ```
 
 ## Import Map

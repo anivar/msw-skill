@@ -1,6 +1,6 @@
 # MSW v2 to v3 Migration Guide
 
-MSW 3.0.0 was released on 2026-09-28 (latest: 3.0.3). It is a major, breaking release: ESM-only, with new minimum Node.js and TypeScript versions, renamed APIs, and new interception features.
+MSW 3.0.0 was released on 2026-09-28 (latest: 3.0.3). It restructures the package entrypoints, makes GraphQL mocking link-first, and unifies the handling of unhandled requests and WebSocket connections. Official guide: https://mswjs.io/docs/migrations/2.x-to-3.x — MSW also ships **codemods** for the migration (see the official guide's "Codemods" link).
 
 ## Requirements
 
@@ -12,91 +12,160 @@ MSW 3.0.0 was released on 2026-09-28 (latest: 3.0.3). It is a major, breaking re
 
 If your project still needs CommonJS, Node.js <22, or TypeScript <5.9, stay on `msw@2` (`^2.15.0`) until you can upgrade the toolchain.
 
-## Breaking API changes
+## Imports — everything moves to subpaths
 
-### `msw/native` removed
+Request handlers, event handlers, and utilities are now exported from designated entrypoints instead of the package root.
 
-The `msw/native` entrypoint no longer exists. React Native support moved to a separate package:
+Before (v2):
 
 ```typescript
-// v2
-import { setupServer } from 'msw/native'
-
-// v3
-import { setupServer } from '@msw/react-native'
+import { http, HttpResponse, graphql, ws, sse, delay, bypass, passthrough } from 'msw'
 ```
 
-### GraphQL moved to `msw/graphql`
-
-`graphql` is now an optional peer dependency and is imported from its own entrypoint:
+After (v3):
 
 ```typescript
-// v2
-import { graphql } from 'msw'
-
-// v3
+import { http, HttpResponse } from 'msw/http'
 import { graphql } from 'msw/graphql'
+import { ws } from 'msw/ws'
+import { sse } from 'msw/sse'
+import { delay } from 'msw/utils/delay'
+import { bypass } from 'msw/utils/bypass'
+import { passthrough } from 'msw/utils/passthrough'
 ```
 
-GraphQL v17 and GraphQL subscriptions are supported. The `GraphQLLinkHandlers` type was renamed to `GraphQLLink`.
+| Export | 2.x | 3.x |
+|--------|-----|-----|
+| `http`, `HttpResponse` | `msw` | `msw/http` |
+| `graphql` | `msw` | `msw/graphql` |
+| `ws` | `msw` | `msw/ws` |
+| `sse` | `msw` | `msw/sse` |
+| `delay` | `msw` | `msw/utils/delay` |
+| `bypass` | `msw` | `msw/utils/bypass` |
+| `passthrough` | `msw` | `msw/utils/passthrough` |
+| `isCommonAssetRequest` | `msw` | `msw/utils/is-common-asset-request` |
 
-### `handleRequest()` removed
+`setupWorker` and `setupServer` stay at `msw/browser` and `msw/node`. React Native moves from the removed `msw/native` entrypoint to the `@msw/react-native` package.
 
-The low-level `handleRequest()` utility was removed. Use `defineNetwork()` instead:
+## GraphQL is link-first
+
+`graphql.query()`, `graphql.mutation()` and `graphql.operation()` are removed from the namespace. Create a link per endpoint and define operations on it:
+
+```typescript
+// v2
+import { graphql, HttpResponse } from 'msw'
+
+export const handlers = [
+  graphql.query('GetUser', () => HttpResponse.json({ data: { user: { name: 'John' } } })),
+]
+
+// v3
+import { HttpResponse } from 'msw/http'
+import { graphql } from 'msw/graphql'
+
+const api = graphql.link('https://api.example.com/graphql')
+
+export const handlers = [
+  api.query('GetUser', () => HttpResponse.json({ data: { user: { name: 'John' } } })),
+]
+```
+
+Links accept relative or absolute URLs, wildcards, and regular expressions. New in v3: `api.subscription()` for GraphQL subscriptions — the resolver receives a `subscription` object with `publish()`.
+
+## `onUnhandledRequest` → `onUnhandledFrame`
+
+The option on `worker.start()` and `server.listen()` is renamed because it now covers any unhandled **network frame** — requests and WebSocket connections alike:
 
 ```typescript
 // v3
-import { defineNetwork } from 'msw'
+server.listen({ onUnhandledFrame: 'error' })
 ```
 
-### Option and event renames
-
-| v2 name | v3 name |
-|---------|---------|
-| `onUnhandledRequest` option | `onUnhandledFrame` |
-| `connection` lifecycle event | `websocket:connection` |
-| `GraphQLLinkHandlers` type | `GraphQLLink` |
-
-New in v3: a `websocket:error` lifecycle event for connection errors.
-
-### `worker.stop()` returns a Promise
+The custom callback shape changed too: it receives a single `{ frame, defaults }` object instead of `(request, print)`. Narrow on `frame.protocol` before reading data, and call a method on `defaults` to fall back to a built-in strategy:
 
 ```typescript
-// v3 — awaiting matters only for in-flight critical scenarios
+server.listen({
+  onUnhandledFrame({ frame, defaults }) {
+    if (frame.protocol === 'http' && frame.data.request.url.includes('cdn.com')) return
+    defaults.warn()
+  },
+})
+```
+
+## Life-cycle events
+
+The `connection` life-cycle event on `server.events` / `worker.events` is renamed:
+
+```typescript
+// v2
+server.events.on('connection', listener)
+
+// v3
+server.events.on('websocket:connection', listener)
+```
+
+Note: this rename applies to the **life-cycle events API only**. The WebSocket link's own listener — `chat.addEventListener('connection', ...)` — keeps the name `connection`.
+
+The `LifeCycleEventsMap` type is no longer exported from `msw`. Events are described by two per-protocol maps exported from `msw/experimental`:
+
+- `HttpNetworkFrameEventMap` — `request:*`, `response:*`, `unhandledException`
+- `WebSocketNetworkFrameEventMap` — `websocket:connection`, `websocket:error`, `graphql:subscription`
+
+Map values changed shape: each key now maps to an event class whose data (`request`, `requestId`, `response`…) is exposed as instance properties. Listeners that destructure those properties keep working unchanged.
+
+## `worker.stop()` returns a Promise
+
+```typescript
+// v3 — resolves once interception is disabled for the current client
 await worker.stop()
 ```
 
-### Fake timers no longer patched
+## `handleRequest()` removed
 
-MSW no longer patches `setTimeout` to circumvent fake timers in test runners. Advance fake timers normally for delayed mocked responses to resolve.
+`handleRequest()` is no longer exported. For the common case, use the simpler `getResponse()`, which accepts handlers and a request and resolves to a mocked response:
 
-### Cookie behavior in Node.js
+```typescript
+// v3
+import { getResponse } from 'msw'
 
-Cookies are no longer managed in Node.js; your environment's default behavior applies (no effect in the browser). `request.headers.get('cookie')` in handlers returns `null` in all environments — use the `cookies` resolver argument for cookie-based logic.
+const response = await getResponse(handlers, request)
+```
 
-### Other changes
+If you used `handleRequest` to build a custom interception layer, look at the experimental `defineNetwork()` API instead.
 
-- `file://` requests now throw in Node.js (unsupported by `fetch`).
-- HTTP-to-WebSocket upgrade requests performed via `fetch()` now throw in Node.js.
-- `bypass()` now removes the `Content-Length` request header.
+## Additional behavior changes (from the release notes)
+
+- Cookies are no longer managed in Node.js; your environment's default applies (browser unaffected). `request.headers.get('cookie')` returns null in handlers — use the `cookies` resolver argument.
+- MSW no longer patches `setTimeout` to circumvent fake timers — advance fake timers explicitly.
+- `file://` requests and HTTP-to-WebSocket upgrades via `fetch()` throw in Node.js.
+- `bypass()` removes the `Content-Length` request header.
 
 ## New in v3
 
-- **`msw/utils` entrypoint** — import individual utilities (`delay`, `passthrough`) with a smaller bundle footprint.
-- **Vite plugin** for MSW.
-- **Page navigation and form submission interception.**
-- **WebSocket Extension API** for custom experiences.
+- **Vite plugin** at `msw/vite` — serves the worker script for you (no more copying `mockServiceWorker.js` into public) and exposes a preconfigured network via the `virtual:msw` module:
+
+```typescript
+import { defineConfig } from 'vite'
+import { msw } from 'msw/vite'
+
+export default defineConfig({ plugins: [msw()] })
+```
+
+- **GraphQL v17** support and **GraphQL subscriptions**.
+- **WebSocket Extension API** for custom experiences, plus the `websocket:error` life-cycle event.
+- **Page-navigation and form-submission interception.**
 - **Passthrough request-header modification.**
-- **GraphQL v17 and GraphQL subscriptions.**
+- Node.js v24 and v26 support; TypeScript v6 and v7 support.
 
 ## Migration checklist
 
 1. Confirm your runtime: ESM-only project, Node.js >=22, TypeScript >=5.9.
-2. Update imports: `graphql` from `msw/graphql`; React Native from `@msw/react-native`.
-3. Rename `onUnhandledRequest` to `onUnhandledFrame` everywhere (tests, setup files).
-4. Rename the WebSocket `connection` listener to `websocket:connection`.
-5. Replace any `handleRequest()` usage with `defineNetwork()`.
-6. Replace cookie header reads in handlers with the `cookies` resolver argument.
-7. `await worker.stop()` where shutdown ordering matters.
-8. If you relied on MSW handling fake timers, advance them explicitly in tests.
-9. For smaller bundles, move utility imports to `msw/utils`.
+2. Move imports to the subpath entrypoints (`msw/http`, `msw/graphql`, `msw/ws`, `msw/sse`, `msw/utils/*`). Consider the official codemods.
+3. React Native: switch `msw/native` imports to `@msw/react-native`.
+4. GraphQL: convert namespace-level `graphql.query/mutation/operation` calls to link-first (`graphql.link(url)` + `link.query(...)`).
+5. Rename `onUnhandledRequest` to `onUnhandledFrame`; update custom callbacks to the `{ frame, defaults }` shape.
+6. Rename the life-cycle `connection` event to `websocket:connection` (the `ws` link's own `addEventListener('connection')` stays as-is).
+7. Replace `handleRequest()` with `getResponse()` (or experimental `defineNetwork()` for custom networks).
+8. Replace `LifeCycleEventsMap` imports with the per-protocol maps from `msw/experimental`.
+9. `await worker.stop()` where shutdown ordering matters.
+10. If you relied on MSW handling fake timers or cookie headers in Node, make both explicit in tests.

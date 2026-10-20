@@ -52,17 +52,22 @@ The predicate is a `string`, a `RegExp`, or a function — **not** a `URL` insta
 
 ## GraphQL Handlers
 
+v3 is link-first: the `graphql` namespace no longer exposes `query`/`mutation`/`operation` directly — create a link per endpoint and define operations on it.
+
 | Method | Description |
 |--------|-------------|
-| `graphql.query(predicate, resolver, options?)` | GraphQL queries |
-| `graphql.mutation(predicate, resolver, options?)` | GraphQL mutations |
-| `graphql.operation(resolver)` | Any GraphQL operation |
-| `graphql.link(url)` | Scoped namespace for specific endpoint |
+| `graphql.link(url)` | Create a scoped link for an endpoint (string, wildcard, or RegExp) |
+| `link.query(predicate, resolver, options?)` | GraphQL queries on that link |
+| `link.mutation(predicate, resolver, options?)` | GraphQL mutations on that link |
+| `link.operation(resolver)` | Any GraphQL operation on that link |
+| `link.subscription(predicate, resolver)` | GraphQL subscriptions (new in v3) — resolver gets a `subscription` object with `publish()` |
 
 ### Signature
 
 ```typescript
-graphql.query<Query, Variables>(
+const api = graphql.link('https://api.example.com/graphql')
+
+api.query<Query, Variables>(
   predicate: string | RegExp | DocumentNode | TypedDocumentNode,
   resolver: (info: {
     query
@@ -81,19 +86,19 @@ graphql.query<Query, Variables>(
 
 ```typescript
 // Operation name — exact match
-graphql.query('GetUser', resolver)
+api.query('GetUser', resolver)
 
 // RegExp — tested against the operation name
-graphql.mutation(/user/i, resolver) // matches CreateUser and UpdateUser
+api.mutation(/user/i, resolver) // matches CreateUser and UpdateUser
 
 // DocumentNode / TypedDocumentNode — from gql`...` or codegen
-graphql.query(GetUserDocument, resolver)
+api.query(GetUserDocument, resolver)
 ```
 
 ### GraphQL Resolver Info
 
 ```typescript
-graphql.query('GetUser', ({
+api.query('GetUser', ({
   query,           // the GraphQL query sent from the client
   variables,       // Record<string, any> — query variables
   operationName,   // string — operation name
@@ -155,7 +160,7 @@ http.get(
 A boolean predicate does no path matching, so `params` in the resolver is always `{}`. To keep path-parameter parsing, return the extended result instead — an object of the shape `{ matches: boolean, params: Record<string, string | string[]> }` — and parse the params yourself with `matchRequestUrl()`:
 
 ```typescript
-import { http, matchRequestUrl, HttpResponse, type PathParams } from 'msw'
+import { http, matchRequestUrl, HttpResponse, type PathParams } from 'msw/http'
 
 http.get<PathParams>(
   ({ request }) => {
@@ -230,7 +235,7 @@ server.use(
 Matches a URL against a path pattern and extracts path parameters. Its main use is inside a custom predicate function (see above), where MSW does not parse path parameters for you; it also works standalone.
 
 ```typescript
-import { matchRequestUrl } from 'msw'
+import { matchRequestUrl } from 'msw/http'
 
 // Always returns an object — check `.matches`, never the object itself.
 // A relative pattern is resolved against the document location, so outside a
@@ -252,7 +257,7 @@ A non-match returns `{ matches: false, params: {} }` — still a truthy object, 
 `finalize` is part of the resolver info on every namespace — `http.*`, `graphql.*`, `sse` and `ws`. It schedules cleanup to run after the request handler completes, which is what you need for side effects a resolver starts but does not own, such as intervals and timeouts on a stream:
 
 ```typescript
-import { sse } from 'msw'
+import { sse } from 'msw/sse'
 
 sse('/ping', ({ client, finalize }) => {
   const interval = setInterval(() => client.send({ data: 'pong' }), 250)
@@ -277,12 +282,12 @@ Points to remember:
 `ws.link(url: string | URL | RegExp)` creates a link to a WebSocket endpoint. The `connection` event fires whenever a client opens a matching connection:
 
 ```typescript
-import { ws } from 'msw'
+import { ws } from 'msw/ws'
 
 const chat = ws.link('wss://chat.example.com')
 
 export const handlers = [
-  chat.addEventListener('websocket:connection', ({ client }) => {
+  chat.addEventListener('connection', ({ client }) => {
     client.addEventListener('message', (event) => {
       client.send(`echo: ${event.data}`)
     })
@@ -307,7 +312,7 @@ export const handlers = [
 `sse(predicate, resolver)` intercepts `EventSource` connections. The resolver receives `client` (the intercepted `EventSource`) alongside the usual resolver info:
 
 ```typescript
-import { sse } from 'msw'
+import { sse } from 'msw/sse'
 
 export const handlers = [
   sse<{ greeting: string }>('/api/events', ({ client }) => {

@@ -29,7 +29,7 @@ http.get('/api/login', () => {
 ## Correct
 
 ```typescript
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse } from 'msw/http'
 
 http.get('/api/login', () => {
   return HttpResponse.json(
