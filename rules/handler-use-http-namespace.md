@@ -27,7 +27,7 @@ const handlers = [
 ## Correct
 
 ```typescript
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse } from 'msw/http'
 
 const handlers = [
   http.get('/api/user', () => {

@@ -104,7 +104,8 @@ test('shows empty state', async () => {
 ### Override for slow response (loading state)
 
 ```typescript
-import { delay, http, HttpResponse } from 'msw'
+import { delay } from 'msw/utils/delay'
+import { http, HttpResponse } from 'msw/http'
 
 test('shows loading state', async () => {
   server.use(
@@ -176,7 +177,7 @@ src/mocks/
 ### handlers/user.ts
 
 ```typescript
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse } from 'msw/http'
 
 export const userHandlers = [
   http.get('/api/users', () => {
@@ -218,7 +219,7 @@ Factory functions for reusable response patterns:
 ### Authentication wrapper
 
 ```typescript
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse } from 'msw/http'
 
 function withAuth(resolver) {
   return async (info) => {

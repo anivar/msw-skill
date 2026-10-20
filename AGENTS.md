@@ -8,7 +8,7 @@
 
 ## Abstract
 
-MSW (Mock Service Worker) is a network-level API mocking library for JavaScript/TypeScript. It intercepts HTTP and GraphQL requests using the `http` and `graphql` namespaces, returning mock responses via `HttpResponse`; it also mocks Server-Sent Events with `sse` and WebSocket connections with `ws`. In tests, `setupServer` (from `msw/node`) intercepts at the request-client level; in the browser, `setupWorker` (from `msw/browser`) uses a Service Worker; React Native uses `@msw/react-native`. MSW v2 completely removed the v1 `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. MSW v3 (2026-09-28) is ESM-only and requires Node.js >=22 and TypeScript >=5.9; it also renamed `onUnhandledRequest` to `onUnhandledFrame` and the WebSocket `connection` event to `websocket:connection`. This guide covers v2 and v3 patterns, testing best practices, and migration from v1 and v2.
+MSW (Mock Service Worker) is a network-level API mocking library for JavaScript/TypeScript. It intercepts HTTP and GraphQL requests using the `http` and `graphql` namespaces, returning mock responses via `HttpResponse`; it also mocks Server-Sent Events with `sse` and WebSocket connections with `ws`. In tests, `setupServer` (from `msw/node`) intercepts at the request-client level; in the browser, `setupWorker` (from `msw/browser`) uses a Service Worker; React Native uses `@msw/react-native`. MSW v2 completely removed the v1 `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. MSW v3 (2026-09-28) is ESM-only and requires Node.js >=22 and TypeScript >=5.9; all exports moved to subpath entrypoints (`msw/http`, `msw/graphql`, `msw/ws`, `msw/sse`, `msw/utils/*`), GraphQL mocking is link-first, `onUnhandledRequest` is now `onUnhandledFrame`, and the `server.events` life-cycle `connection` event is now `websocket:connection` (the `ws` link's own `addEventListener('connection')` is unchanged). This guide covers v2 and v3 patterns, testing best practices, and migration from v1 and v2.
 
 ---
 
@@ -37,7 +37,7 @@ import { rest } from 'msw'
 rest.get('/api/user', (req, res, ctx) => res(ctx.json({ name: 'John' })))
 
 // CORRECT
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse } from 'msw/http'
 http.get('/api/user', () => HttpResponse.json({ name: 'John' }))
 ```
 
@@ -119,12 +119,12 @@ Complete v1 to v2 mapping:
 MSW mocks WebSocket connections too, through the `ws` namespace:
 
 ```typescript
-import { ws } from 'msw'
+import { ws } from 'msw/ws'
 
 const chat = ws.link('wss://chat.example.com')
 
 export const handlers = [
-  chat.addEventListener('websocket:connection', ({ client }) => {
+  chat.addEventListener('connection', ({ client }) => {
     client.addEventListener('message', (event) => {
       client.send(`echo: ${event.data}`)
     })
@@ -148,7 +148,7 @@ import { setupServer } from 'msw'
 // CORRECT
 import { setupServer } from 'msw/node'    // Node.js (tests, SSR)
 import { setupWorker } from 'msw/browser'  // Browser (Storybook, dev)
-import { http, HttpResponse } from 'msw'   // Handlers and utilities
+import { http, HttpResponse } from 'msw/http'   // Handlers and utilities
 ```
 
 | Export | Import from |
@@ -192,7 +192,7 @@ src/mocks/
 
 ```typescript
 // src/mocks/handlers.ts
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse } from 'msw/http'
 
 export const handlers = [
   http.get('/api/user', () => HttpResponse.json({ name: 'John' })),
@@ -217,6 +217,8 @@ npx msw init <PUBLIC_DIR> --save
 ```
 
 This copies `mockServiceWorker.js` into your public directory — commit it, and verify it is served at `/mockServiceWorker.js`. The `--save` flag records `msw.workerDirectory` in `package.json`, so the script is copied again automatically whenever you install `msw`.
+
+**On Vite projects, prefer the `msw/vite` plugin** (v3): it serves the worker script for you — no `msw init` copy step — and exposes a preconfigured network via the `virtual:msw` module.
 
 ---
 
@@ -308,7 +310,7 @@ http.get('/resource', ({ request }) => {
 ### Rule: Use `sse()` for Server-Sent Events, ReadableStream for Chunked
 
 ```typescript
-import { sse } from 'msw'
+import { sse } from 'msw/sse'
 
 // Server-Sent Events — the sse handler owns the wire format and headers
 export const handlers = [
@@ -320,7 +322,8 @@ export const handlers = [
 ```
 
 ```typescript
-import { http, HttpResponse, delay } from 'msw'
+import { http, HttpResponse } from 'msw/http'
+import { delay } from 'msw/utils/delay'
 
 // Non-SSE chunked transfer — a ReadableStream body is still the right tool
 http.get('/api/stream', () => {
@@ -415,21 +418,33 @@ server.listen({ onUnhandledFrame: 'error' })
 // INCORRECT — ctx.data() removed in v2
 graphql.query('GetUser', (req, res, ctx) => res(ctx.data({ user: {} })))
 
-// CORRECT
-graphql.query('GetUser', ({ variables }) => {
+// INCORRECT in v3 — query/mutation/operation are no longer on the namespace
+graphql.query('GetUser', ({ variables }) => { ... })
+
+// CORRECT — v3 is link-first: define operations on a graphql.link()
+import { graphql } from 'msw/graphql'
+import { HttpResponse } from 'msw/http'
+
+const api = graphql.link('https://api.example.com/graphql')
+
+api.query('GetUser', ({ variables }) => {
   return HttpResponse.json({
     data: { user: { id: variables.id, name: 'John' } },
   })
 })
 ```
 
-### Rule: Use `graphql.link()` for Multiple Endpoints
+### Rule: Use `graphql.link()` for Every Endpoint (required in v3)
+
+v2 allowed `graphql.query()` directly on the namespace; v3 is link-first — operations exist only on a link. The same link-first shape also covers multiple endpoints:
+
+### Rule: Use `graphql.link()` for Every Endpoint (required in v3)
 
 ```typescript
 const github = graphql.link('https://api.github.com/graphql')
 const internal = graphql.link('/graphql')
 
-const handlers = [
+export const handlers = [
   github.query('GetUser', ({ variables }) => {
     return HttpResponse.json({ data: { user: { login: variables.login } } })
   }),
@@ -437,6 +452,14 @@ const handlers = [
     return HttpResponse.json({ data: { user: { id: variables.id } } })
   }),
 ]
+```
+
+Link URLs accept relative or absolute strings, wildcards, and regular expressions. v3 also adds `api.subscription()` for mocking GraphQL subscriptions, publishing data through the `subscription` object exposed on the resolver:
+
+```typescript
+api.subscription('OnCreateMessage', ({ subscription }) => {
+  subscription.publish({ data: { messageCreated: { content: 'Welcome!' } } })
+})
 ```
 
 ---
@@ -447,7 +470,8 @@ const handlers = [
 ### Rule: `bypass()` vs `passthrough()` — Not Interchangeable
 
 ```typescript
-import { bypass, passthrough } from 'msw'
+import { bypass } from 'msw/utils/bypass'
+import { passthrough } from 'msw/utils/passthrough'
 
 // passthrough() — let intercepted request through to real server
 http.get('/api/flags', () => {

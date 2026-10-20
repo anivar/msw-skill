@@ -44,7 +44,7 @@ http.get('/api/events', () => {
 Server-Sent Events — use the `sse` handler, which represents the intercepted `EventSource` as `client`:
 
 ```typescript
-import { sse } from 'msw'
+import { sse } from 'msw/sse'
 
 export const handlers = [
   sse<{ greeting: string }>('/api/events', ({ client }) => {
@@ -57,7 +57,8 @@ export const handlers = [
 Non-SSE chunked transfer — a `ReadableStream` body is still the right tool:
 
 ```typescript
-import { http, HttpResponse, delay } from 'msw'
+import { http, HttpResponse } from 'msw/http'
+import { delay } from 'msw/utils/delay'
 
 http.get('/api/stream', () => {
   const stream = new ReadableStream({

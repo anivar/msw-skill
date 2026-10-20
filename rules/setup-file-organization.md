@@ -38,7 +38,7 @@ src/mocks/
 
 ```typescript
 // src/mocks/handlers.ts
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse } from 'msw/http'
 
 export const handlers = [
   http.get('/api/user', () => {
@@ -62,7 +62,7 @@ Browser setup needs one extra step: the worker script must exist on disk before 
 npx msw init <PUBLIC_DIR> --save
 ```
 
-This copies `mockServiceWorker.js` into your public directory — commit it, and verify it is served at `/mockServiceWorker.js`. The `--save` flag records `msw.workerDirectory` in `package.json`, so the script is copied again automatically whenever you install `msw`, keeping it in sync with the installed version.
+This copies `mockServiceWorker.js` into your public directory — commit it, and verify it is served at `/mockServiceWorker.js`. The `--save` flag records `msw.workerDirectory` in `package.json`, so the script is copied again automatically whenever you install `msw`, keeping it in sync with the installed version. On Vite projects, the `msw/vite` plugin (v3) serves the worker script instead — no init step needed.
 
 ```typescript
 // src/mocks/browser.ts

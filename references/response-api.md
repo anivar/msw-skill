@@ -13,7 +13,7 @@
 `HttpResponse` extends the native `Response` class. It can be used anywhere a `Response` is expected but adds support for forbidden headers like `Set-Cookie`.
 
 ```typescript
-import { HttpResponse } from 'msw'
+import { HttpResponse } from 'msw/http'
 ```
 
 ### Constructor

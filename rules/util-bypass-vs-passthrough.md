@@ -15,7 +15,7 @@ Developers confuse `bypass()` and `passthrough()`. They serve completely differe
 
 ```typescript
 // BUG: bypass() creates a NEW request — it doesn't "let this request through"
-import { bypass } from 'msw'
+import { bypass } from 'msw/utils/bypass'
 
 http.get('/api/user', ({ request }) => {
   // Wrong: this makes a SECOND request, not passing the original through
@@ -26,7 +26,8 @@ http.get('/api/user', ({ request }) => {
 ## Correct
 
 ```typescript
-import { bypass, passthrough } from 'msw'
+import { bypass } from 'msw/utils/bypass'
+import { passthrough } from 'msw/utils/passthrough'
 
 // passthrough() — let the original intercepted request go to the actual server
 http.get('/api/feature-flag', ({ request }) => {
