@@ -10,7 +10,7 @@
 
 ## HttpResponse Class
 
-`HttpResponse` extends the native `Response` class. It can be used anywhere a `Response` is expected but adds support for forbidden headers like `Set-Cookie`.
+`HttpResponse` extends the native `Response` class. It can be used anywhere a `Response` is expected but keeps forbidden headers like `Set-Cookie`, which a browser drops from a native `Response`.
 
 ```typescript
 import { HttpResponse } from 'msw/http'
@@ -102,7 +102,7 @@ HttpResponse.arrayBuffer(buffer)
 
 ### HttpResponse.error()
 
-Creates a network error response (`type: "error"`). The client receives a `TypeError: Failed to fetch`.
+Creates a network error response (`type: "error"`). The client's `fetch` rejects with a `TypeError` (Node.js: "fetch failed"; each browser has its own text).
 
 ```typescript
 HttpResponse.error()
@@ -140,7 +140,7 @@ new HttpResponse(null, {
 
 ## Cookie Handling
 
-Native `Response` forbids `Set-Cookie` in the constructor. `HttpResponse` bypasses this:
+In the browser, a native `Response` drops `Set-Cookie` from its constructor headers. `HttpResponse` keeps it. Node.js keeps the header on both classes, so only `HttpResponse` behaves the same in both environments:
 
 ```typescript
 // GOOD: HttpResponse supports Set-Cookie
@@ -148,7 +148,7 @@ new HttpResponse(null, {
   headers: { 'Set-Cookie': 'session=abc123' },
 })
 
-// BAD: native Response silently drops Set-Cookie
+// BAD: in the browser, native Response silently drops Set-Cookie
 new Response(null, {
   headers: { 'Set-Cookie': 'session=abc123' },
 })
@@ -172,6 +172,6 @@ new HttpResponse(null, {
 | JSON body | Manual `JSON.stringify` | `HttpResponse.json()` auto-serializes |
 | Content-Type | Must set manually | Auto-set by static methods |
 | Content-Length | Must set manually | Auto-set by `.arrayBuffer()` from the buffer's byte length |
-| Set-Cookie | Forbidden (silently dropped) | Supported |
-| Network error | Not possible | `HttpResponse.error()` |
-| Use in MSW handlers | Yes (except cookies) | Yes (full support) |
+| Set-Cookie | Dropped in the browser; kept in Node.js | Supported |
+| Network error | `Response.error()` | `HttpResponse.error()` |
+| Use in MSW handlers | Yes (except cookies in the browser) | Yes (full support) |

@@ -71,7 +71,7 @@ Use `server.use()` to add handlers that only last until `resetHandlers()` runs i
 
 ### Override for error state
 
-```typescript
+```tsx
 test('shows error when API fails', async () => {
   server.use(
     http.get('/api/user', () => {
@@ -88,7 +88,7 @@ test('shows error when API fails', async () => {
 
 ### Override for empty state
 
-```typescript
+```tsx
 test('shows empty state', async () => {
   server.use(
     http.get('/api/posts', () => HttpResponse.json([]))
@@ -103,7 +103,7 @@ test('shows empty state', async () => {
 
 ### Override for slow response (loading state)
 
-```typescript
+```tsx
 import { delay } from 'msw/utils/delay'
 import { http, HttpResponse } from 'msw/http'
 
@@ -122,7 +122,7 @@ test('shows loading state', async () => {
 
 ### One-time override for retry testing
 
-```typescript
+```tsx
 test('retries after failure', async () => {
   server.use(
     // First request fails, then handler is consumed
@@ -312,7 +312,7 @@ test('authenticated dashboard', async () => {
 
 Create a fresh `QueryClient` per test to avoid stale cache:
 
-```typescript
+```tsx
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 function renderWithClient(ui: React.ReactElement) {
@@ -329,7 +329,7 @@ function renderWithClient(ui: React.ReactElement) {
 
 Use `SWRConfig` with a fresh cache per test:
 
-```typescript
+```tsx
 import { SWRConfig } from 'swr'
 
 function renderWithSWR(ui: React.ReactElement) {
@@ -345,7 +345,7 @@ function renderWithSWR(ui: React.ReactElement) {
 
 Create a fresh `InMemoryCache` per test:
 
-```typescript
+```tsx
 import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client'
 
 function renderWithApollo(ui: React.ReactElement) {
@@ -365,7 +365,7 @@ Browser mocking requires the worker script on disk first — run `npx msw init <
 
 Enable mocking only in development:
 
-```typescript
+```tsx
 // src/main.tsx
 async function enableMocking() {
   if (process.env.NODE_ENV !== 'development') {

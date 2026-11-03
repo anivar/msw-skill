@@ -13,7 +13,7 @@ Asserting that `fetch` was called with specific arguments tests implementation d
 
 ## Incorrect
 
-```typescript
+```tsx
 // BUG: testing implementation, not behavior
 test('logs in the user', async () => {
   render(<LoginForm />)
@@ -31,7 +31,7 @@ test('logs in the user', async () => {
 
 ## Correct
 
-```typescript
+```tsx
 test('logs in the user', async () => {
   render(<LoginForm />)
   await userEvent.type(screen.getByLabelText('Email'), 'john@test.com')

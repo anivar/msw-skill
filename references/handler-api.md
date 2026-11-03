@@ -160,7 +160,8 @@ http.get(
 A boolean predicate does no path matching, so `params` in the resolver is always `{}`. To keep path-parameter parsing, return the extended result instead — an object of the shape `{ matches: boolean, params: Record<string, string | string[]> }` — and parse the params yourself with `matchRequestUrl()`:
 
 ```typescript
-import { http, matchRequestUrl, HttpResponse, type PathParams } from 'msw/http'
+import { http, HttpResponse } from 'msw/http'
+import { matchRequestUrl, type PathParams } from 'msw'
 
 http.get<PathParams>(
   ({ request }) => {
@@ -203,8 +204,9 @@ A bare `*` is an *unnamed* group, so there is no `params['*']` — reading it gi
 
 ```typescript
 http.get('/files/:path*', ({ params }) => {
-  // params.path is an array of segments: ['a', 'b', 'c.txt']
-  const path = [].concat(params.path).join('/')
+  // msw 3.0.3 passes the matched segments as one string: 'a/b/c.txt'.
+  // The docs and the type also allow an array, so accept both.
+  const path = [params.path ?? []].flat().join('/')
   return HttpResponse.json({ path })
 })
 ```
@@ -217,7 +219,7 @@ Automatically removed after the first matching request:
 
 ```typescript
 http.get('/api/data', resolver, { once: true })
-graphql.query('GetUser', resolver, { once: true })
+graphql.link('/graphql').query('GetUser', resolver, { once: true })
 ```
 
 Useful for testing retry logic — first request fails, second succeeds:
@@ -235,7 +237,8 @@ server.use(
 Matches a URL against a path pattern and extracts path parameters. Its main use is inside a custom predicate function (see above), where MSW does not parse path parameters for you; it also works standalone.
 
 ```typescript
-import { matchRequestUrl } from 'msw/http'
+// matchRequestUrl is exported from the package root, not from 'msw/http'.
+import { matchRequestUrl } from 'msw'
 
 // Always returns an object — check `.matches`, never the object itself.
 // A relative pattern is resolved against the document location, so outside a

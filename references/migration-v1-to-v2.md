@@ -75,7 +75,7 @@ http.get('/user', ({ request, params, cookies }) => {
 | Property | Type | Description |
 |----------|------|-------------|
 | `request` | `Request` | Standard Fetch API Request |
-| `params` | `Record<string, string \| string[]>` | Path parameters. Repeating params (`:segments+`) yield an array of strings |
+| `params` | `Record<string, string \| string[]>` | Path parameters. In msw 3.0.3 a repeating param (`:segments+`, `:path*`) arrives as one string with its slashes (`'a/b'`); the docs and the type also allow an array |
 | `cookies` | `Record<string, string>` | Parsed request cookies |
 | `requestId` | `string` | Unique request identifier |
 
@@ -198,7 +198,7 @@ rest.post('/api/user', (req, res, ctx) => {
 
 // GOOD: v2 (async body access)
 http.post('/api/user', async ({ request }) => {
-  const { name } = await request.json()
+  const { name } = (await request.json()) as { name: string }
   return HttpResponse.json({ name })
 })
 ```

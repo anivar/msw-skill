@@ -1,7 +1,7 @@
 ---
 title: Set `onUnhandledFrame: 'error'` to Catch Missing Handlers
 impact: HIGH
-description: Configure the server to throw on unhandled requests so missing handlers fail tests loudly instead of silently passing through.
+description: Configure the server to error on unhandled requests so a missing handler fails the request loudly instead of passing it through to the network.
 tags: testing, unhandled, error, configuration, strictness
 ---
 
@@ -9,7 +9,7 @@ tags: testing, unhandled, error, configuration, strictness
 
 ## Problem
 
-The default `onUnhandledFrame` behavior is `'warn'` — unexpected requests print a warning but silently pass through to the actual network. Tests pass even though a handler is missing.
+The default `onUnhandledFrame` behavior is `'warn'` — unexpected requests print a warning and pass through to the actual network. Tests can pass even though a handler is missing.
 
 ## Incorrect
 
@@ -18,8 +18,8 @@ The default `onUnhandledFrame` behavior is `'warn'` — unexpected requests prin
 const server = setupServer(...handlers)
 server.listen() // default: { onUnhandledFrame: 'warn' }
 
-// If you forget a handler for /api/settings, the test silently
-// hits the real API (or fails with a network error, not a clear message)
+// If you forget a handler for /api/settings, the test hits the real API.
+// The only sign is a console warning, or a network error with no clear message.
 ```
 
 ## Correct
@@ -31,10 +31,11 @@ beforeAll(() => {
   server.listen({ onUnhandledFrame: 'error' })
 })
 
-// Now a missing handler throws:
+// Now a missing handler prints:
 // [MSW] Error: intercepted a request without a matching request handler:
 //   GET /api/settings
-// This fails the test immediately with a clear error message.
+// and the request fails: fetch rejects with a TypeError ("fetch failed" in Node.js).
+// The test fails where the code under test surfaces that error.
 ```
 
 ## Options
@@ -42,10 +43,10 @@ beforeAll(() => {
 | Strategy | Behavior |
 |----------|----------|
 | `'warn'` (default) | Console warning, request passes through |
-| `'error'` | Throws error, test fails |
+| `'error'` | Console error; the request fails with a network error (`TypeError`) |
 | `'bypass'` | Silent, request passes through |
-| `(request) => {}` | Custom function for conditional handling. Opts you out of the built-in common-asset exemption — re-apply it with `isCommonAssetRequest(request)` (see `references/server-api.md`) |
+| `({ frame, defaults }) => {}` | Custom function for conditional handling. Opts you out of the built-in common-asset exemption — re-apply it with `isCommonAssetRequest(frame.data.request)` after `frame instanceof HttpNetworkFrame` (see `references/server-api.md`) |
 
 ## Why
 
-`onUnhandledFrame: 'error'` turns missing handlers into immediate test failures with clear error messages. This catches typos in URLs, forgotten handlers for new endpoints, and accidental real network requests during testing.
+`onUnhandledFrame: 'error'` turns a missing handler into a failed request and a clear console error, instead of a silent call to the real network. This catches typos in URLs, forgotten handlers for new endpoints, and accidental real network requests during testing.

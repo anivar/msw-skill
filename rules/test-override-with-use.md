@@ -13,7 +13,7 @@ Developers either mutate the shared handlers array, create a new server for each
 
 ## Incorrect
 
-```typescript
+```tsx
 // BUG: creating a new server per test is wasteful and error-prone
 test('shows error on server failure', async () => {
   const errorServer = setupServer(
@@ -32,7 +32,7 @@ test('shows error on server failure', async () => {
 
 ## Correct
 
-```typescript
+```tsx
 // Shared server with happy-path handlers (defined once)
 // import { server } from '../src/mocks/node'
 

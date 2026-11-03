@@ -1,20 +1,20 @@
 # MSW v2 to v3 Migration Guide
 
-MSW 3.0.0 was released on 2026-09-28 (latest: 3.0.3). It restructures the package entrypoints, makes GraphQL mocking link-first, and unifies the handling of unhandled requests and WebSocket connections. Official guide: https://mswjs.io/docs/migrations/2.x-to-3.x — MSW also ships **codemods** for the migration (see the official guide's "Codemods" link).
+MSW 3.0 (checked against 3.0.3) restructures the package entrypoints, makes GraphQL mocking link-first, and unifies the handling of unhandled requests and WebSocket connections. Official guide: https://mswjs.io/docs/migrations/2.x-to-3.x — MSW also ships **codemods** for the migration (see the official guide's "Codemods" link).
 
 ## Requirements
 
 | Requirement | v2 | v3 |
 |-------------|----|----|
 | Module format | CJS + ESM | **ESM only** |
-| Node.js | v14+ | **v22+** (v24 and v26 also supported) |
-| TypeScript | v4.4+ | **v5.9+** (v6.0 and v7.0 also supported) |
+| Node.js | v18+ | **v22+** (v24 and v26 also supported; msw 3.0.3's `engines` field says `>=22.12.0`) |
+| TypeScript | v4.7+ (msw 2.15.0 declares `>=4.8`) | **v5.9+** (v6.0 and v7.0 also supported) |
 
 If your project still needs CommonJS, Node.js <22, or TypeScript <5.9, stay on `msw@2` (`^2.15.0`) until you can upgrade the toolchain.
 
 ## Imports — everything moves to subpaths
 
-Request handlers, event handlers, and utilities are now exported from designated entrypoints instead of the package root.
+Request handlers, event handlers, and utilities are now exported from designated entrypoints instead of the package root. In msw 3.0.3 the root `msw` module still re-exports most of them (`http`, `HttpResponse`, `ws`, `sse`, `delay`, `bypass`, `passthrough`, `isCommonAssetRequest`), but not `graphql`, `setupServer` or `setupWorker`. Follow the subpaths: an import of `graphql` from `msw` breaks.
 
 Before (v2):
 
@@ -72,6 +72,8 @@ export const handlers = [
 
 Links accept relative or absolute URLs, wildcards, and regular expressions. New in v3: `api.subscription()` for GraphQL subscriptions — the resolver receives a `subscription` object with `publish()`.
 
+`msw/graphql` needs the `graphql` package (>=16), now an optional peer dependency of msw. Install it, or the import fails with `Cannot find package 'graphql'`.
+
 ## `onUnhandledRequest` → `onUnhandledFrame`
 
 The option on `worker.start()` and `server.listen()` is renamed because it now covers any unhandled **network frame** — requests and WebSocket connections alike:
@@ -81,12 +83,16 @@ The option on `worker.start()` and `server.listen()` is renamed because it now c
 server.listen({ onUnhandledFrame: 'error' })
 ```
 
-The custom callback shape changed too: it receives a single `{ frame, defaults }` object instead of `(request, print)`. Narrow on `frame.protocol` before reading data, and call a method on `defaults` to fall back to a built-in strategy:
+The old name is not an alias. TypeScript rejects `onUnhandledRequest` (TS2353); plain JavaScript ignores it, so the default `'warn'` applies and unhandled requests reach the network without failing anything.
+
+The custom callback shape changed too: it receives a single `{ frame, defaults }` object instead of `(request, print)`. Narrow with `frame instanceof HttpNetworkFrame` (from `msw/experimental`) before reading data — a `frame.protocol` check does not narrow the type — and call a method on `defaults` to fall back to a built-in strategy:
 
 ```typescript
+import { HttpNetworkFrame } from 'msw/experimental'
+
 server.listen({
   onUnhandledFrame({ frame, defaults }) {
-    if (frame.protocol === 'http' && frame.data.request.url.includes('cdn.com')) return
+    if (frame instanceof HttpNetworkFrame && frame.data.request.url.includes('cdn.com')) return
     defaults.warn()
   },
 })
@@ -162,8 +168,8 @@ export default defineConfig({ plugins: [msw()] })
 1. Confirm your runtime: ESM-only project, Node.js >=22, TypeScript >=5.9.
 2. Move imports to the subpath entrypoints (`msw/http`, `msw/graphql`, `msw/ws`, `msw/sse`, `msw/utils/*`). Consider the official codemods.
 3. React Native: switch `msw/native` imports to `@msw/react-native`.
-4. GraphQL: convert namespace-level `graphql.query/mutation/operation` calls to link-first (`graphql.link(url)` + `link.query(...)`).
-5. Rename `onUnhandledRequest` to `onUnhandledFrame`; update custom callbacks to the `{ frame, defaults }` shape.
+4. GraphQL: install the `graphql` package, and convert namespace-level `graphql.query/mutation/operation` calls to link-first (`graphql.link(url)` + `link.query(...)`).
+5. Rename every `onUnhandledRequest` to `onUnhandledFrame` (JavaScript ignores the old name without a warning); update custom callbacks to the `{ frame, defaults }` shape.
 6. Rename the life-cycle `connection` event to `websocket:connection` (the `ws` link's own `addEventListener('connection')` stays as-is).
 7. Replace `handleRequest()` with `getResponse()` (or experimental `defineNetwork()` for custom networks).
 8. Replace `LifeCycleEventsMap` imports with the per-protocol maps from `msw/experimental`.

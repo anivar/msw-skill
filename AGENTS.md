@@ -1,4 +1,4 @@
-# MSW v2 — Complete Guide
+# MSW — Complete Guide
 
 > This document is for AI agents and LLMs to follow when writing, reviewing, or debugging MSW (Mock Service Worker) handlers, server setup, and test patterns. It compiles all rules and references into a single executable guide.
 
@@ -8,7 +8,7 @@
 
 ## Abstract
 
-MSW (Mock Service Worker) is a network-level API mocking library for JavaScript/TypeScript. It intercepts HTTP and GraphQL requests using the `http` and `graphql` namespaces, returning mock responses via `HttpResponse`; it also mocks Server-Sent Events with `sse` and WebSocket connections with `ws`. In tests, `setupServer` (from `msw/node`) intercepts at the request-client level; in the browser, `setupWorker` (from `msw/browser`) uses a Service Worker; React Native uses `@msw/react-native`. MSW v2 completely removed the v1 `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. MSW v3 (2026-09-28) is ESM-only and requires Node.js >=22 and TypeScript >=5.9; all exports moved to subpath entrypoints (`msw/http`, `msw/graphql`, `msw/ws`, `msw/sse`, `msw/utils/*`), GraphQL mocking is link-first, `onUnhandledRequest` is now `onUnhandledFrame`, and the `server.events` life-cycle `connection` event is now `websocket:connection` (the `ws` link's own `addEventListener('connection')` is unchanged). This guide covers v2 and v3 patterns, testing best practices, and migration from v1 and v2.
+MSW (Mock Service Worker) is a network-level API mocking library for JavaScript/TypeScript. It intercepts HTTP and GraphQL requests using the `http` and `graphql` namespaces, returning mock responses via `HttpResponse`; it also mocks Server-Sent Events with `sse` and WebSocket connections with `ws`. In tests, `setupServer` (from `msw/node`) intercepts at the request-client level; in the browser, `setupWorker` (from `msw/browser`) uses a Service Worker; React Native uses `@msw/react-native`. MSW v2 completely removed the v1 `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. MSW v3 is ESM-only and requires Node.js >=22 and TypeScript >=5.9; handlers and utilities moved to subpath entrypoints (`msw/http`, `msw/graphql`, `msw/ws`, `msw/sse`, `msw/utils/*`), GraphQL mocking is link-first, `onUnhandledRequest` is now `onUnhandledFrame`, and the `server.events` life-cycle `connection` event is now `websocket:connection` (the `ws` link's own `addEventListener('connection')` is unchanged). This guide covers v2 and v3 patterns, testing best practices, and migration from v1 and v2.
 
 ---
 
@@ -78,7 +78,7 @@ Resolver info properties:
 | Property | Type | Description |
 |----------|------|-------------|
 | `request` | `Request` | Standard Fetch API Request object |
-| `params` | `Record<string, string \| string[]>` | Path parameters. Repeating params (`:segments+`) yield an array of strings |
+| `params` | `Record<string, string \| string[]>` | Path parameters. In msw 3.0.3 a repeating param (`:segments+`, `:path*`) arrives as one string with its slashes (`'a/b'`); the docs and the type also allow an array |
 | `cookies` | `Record<string, string>` | Parsed request cookies |
 | `requestId` | `string` | Unique request identifier |
 | `finalize` | `Function` | Schedule a cleanup callback to run after the resolver completes |
@@ -153,7 +153,10 @@ import { http, HttpResponse } from 'msw/http'   // Handlers and utilities
 
 | Export | Import from |
 |--------|-------------|
-| `http`, `graphql`, `sse`, `ws`, `HttpResponse`, `delay`, `bypass`, `passthrough` | `'msw'` |
+| `http`, `HttpResponse` | `'msw/http'` |
+| `graphql` | `'msw/graphql'` (install the `graphql` package) |
+| `ws`, `sse` | `'msw/ws'`, `'msw/sse'` |
+| `delay`, `bypass`, `passthrough` | `'msw/utils/delay'`, `'msw/utils/bypass'`, `'msw/utils/passthrough'` |
 | `setupServer` | `'msw/node'` |
 | `setupWorker` | `'msw/browser'` |
 | `setupServer` (React Native) | `'@msw/react-native'` |
@@ -230,7 +233,7 @@ This copies `mockServiceWorker.js` into your public directory — commit it, and
 Reading `request.json()` consumes the body stream. In lifecycle events, clone first.
 
 ```typescript
-// INCORRECT — body consumed, handler gets empty body
+// INCORRECT — body consumed: the handler lookup fails and the client gets a 500
 server.events.on('request:start', async ({ request }) => {
   const body = await request.json()
 })
@@ -272,10 +275,10 @@ http.post('/api/user', async ({ request }) => {
 
 ### Rule: Use `HttpResponse` for Cookie Mocking
 
-Native `Response` forbids `Set-Cookie` headers. `HttpResponse` bypasses this.
+In the browser, a native `Response` drops `Set-Cookie` (a forbidden response header). `HttpResponse` keeps it. Node.js keeps the header on either class, so use `HttpResponse` for handlers that run in both.
 
 ```typescript
-// INCORRECT — Set-Cookie silently dropped
+// INCORRECT in the browser — Set-Cookie silently dropped
 new Response(null, { headers: { 'Set-Cookie': 'token=abc' } })
 
 // CORRECT
@@ -288,7 +291,7 @@ new HttpResponse(null, { headers: { 'Set-Cookie': 'token=abc' } })
 // INCORRECT — MSW handles this as an unhandled resolver exception, not a network error
 http.get('/api/data', () => { throw new Error('fail') })
 
-// CORRECT — simulates TypeError: Failed to fetch
+// CORRECT — fetch rejects with a TypeError (Node.js: 'fetch failed'; each browser has its own text)
 http.get('/api/data', () => HttpResponse.error())
 ```
 
@@ -363,7 +366,7 @@ Where the request's *validity* is the point, validate it inside the handler and 
 
 ### Rule: Use `server.use()` for Per-Test Overrides
 
-```typescript
+```tsx
 test('shows error state', async () => {
   server.use(
     http.get('/api/user', () => new HttpResponse(null, { status: 500 }))
@@ -396,16 +399,16 @@ it.concurrent('member view', server.boundary(async () => {
 ### Rule: Set `onUnhandledFrame: 'error'`
 
 ```typescript
-// Default 'warn' silently passes through — missing handlers don't fail tests
+// Default 'warn' prints a warning and passes the request through — missing handlers don't fail tests
 server.listen({ onUnhandledFrame: 'error' })
 ```
 
 | Strategy | Behavior |
 |----------|----------|
-| `'warn'` (default) | Console warning, passes through |
-| `'error'` | Throws, test fails |
+| `'warn'` (default) | Console warning, request passes through |
+| `'error'` | Console error; the request fails with a network error (`TypeError`) |
 | `'bypass'` | Silent, passes through |
-| Custom function | Conditional handling. Opts you out of the built-in common-asset exemption — re-apply it with `isCommonAssetRequest(request)` |
+| `({ frame, defaults }) => {}` | Conditional handling. Opts you out of the built-in common-asset exemption — re-apply it with `isCommonAssetRequest(frame.data.request)` after `frame instanceof HttpNetworkFrame` |
 
 ---
 
@@ -436,9 +439,7 @@ api.query('GetUser', ({ variables }) => {
 
 ### Rule: Use `graphql.link()` for Every Endpoint (required in v3)
 
-v2 allowed `graphql.query()` directly on the namespace; v3 is link-first — operations exist only on a link. The same link-first shape also covers multiple endpoints:
-
-### Rule: Use `graphql.link()` for Every Endpoint (required in v3)
+v2 allowed `graphql.query()` directly on the namespace; v3 is link-first — operations exist only on a link. Give each API its own link: a wildcard or RegExp link (`'*'`, `/graphql$/`) matches the operation on every endpoint. `msw/graphql` needs the `graphql` package (>=16), an optional peer dependency of msw; without it the import fails with `Cannot find package 'graphql'`.
 
 ```typescript
 const github = graphql.link('https://api.github.com/graphql')
