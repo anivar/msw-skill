@@ -1,0 +1,31 @@
+{
+  "name": "msw-skill-check",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "blocks": "bun blocks.ts",
+    "index": "bun index.ts",
+    "guards": "bun test guards.test.ts",
+    "claims": "node --test claims/",
+    "check": "bun blocks.ts && bun index.ts && bun test guards.test.ts && node --test claims/"
+  },
+  "devDependencies": {
+    "@apollo/client": "4.3.6",
+    "@tanstack/react-query": "5.105.3",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.8",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "graphql": "17.0.2",
+    "msw": "3.0.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "swr": "2.5.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "vitest": "5.1.0"
+  }
+}
