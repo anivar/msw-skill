@@ -124,7 +124,7 @@ http.post('/api/user', async ({ request }) => {
 ## 7. Using native Response for cookies
 
 ```typescript
-// BAD: Set-Cookie silently dropped
+// BAD: in the browser, Set-Cookie is silently dropped (Node.js keeps it)
 new Response(null, {
   headers: { 'Set-Cookie': 'token=abc' },
 })
@@ -152,10 +152,10 @@ it.concurrent('test A', server.boundary(async () => {
 ## 9. Not setting onUnhandledFrame: 'error'
 
 ```typescript
-// BAD: unhandled requests silently pass through
+// BAD: unhandled requests print a warning and pass through to the network
 server.listen()
 
-// GOOD: missing handlers fail the test
+// GOOD: a missing handler makes the request fail with a network error
 server.listen({ onUnhandledFrame: 'error' })
 ```
 

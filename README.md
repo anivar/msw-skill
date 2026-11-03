@@ -2,7 +2,7 @@
 
 Created by **[Anivar Aravind](https://anivar.net)**
 
-An AI agent skill for writing, reviewing, and debugging MSW (Mock Service Worker) v2 handlers, server setup, and test patterns with modern best practices.
+An AI agent skill for writing, reviewing, and debugging MSW (Mock Service Worker) v3 handlers, server setup, and test patterns with modern best practices.
 
 ## The Problem
 
@@ -10,7 +10,7 @@ AI agents often generate outdated MSW v1 patterns — `rest.get()` instead of `h
 
 ## This Solution
 
-20 rules with incorrect/correct code examples that teach agents MSW v2's actual API, handler design, server lifecycle, response construction, testing patterns, GraphQL usage, and v1-to-v2 migration. Each rule targets a specific mistake and shows exactly how to fix it.
+20 rules with incorrect/correct code examples that teach agents MSW v3's actual API, handler design, server lifecycle, response construction, testing patterns, GraphQL usage, and v1-to-v2 and v2-to-v3 migration. Each rule targets a specific mistake and shows exactly how to fix it.
 
 ## Install
 

@@ -1,7 +1,7 @@
 ---
 title: Return `{ data }` and `{ errors }` Directly in GraphQL Handlers
 impact: MEDIUM
-description: v2 GraphQL handlers return `HttpResponse.json({ data: ... })` — the v1 `ctx.data()` and `ctx.errors()` helpers are removed.
+description: GraphQL handlers return `HttpResponse.json({ data: ... })` — the v1 `ctx.data()` and `ctx.errors()` helpers are removed.
 tags: graphql, response, data, errors, v2, migration
 ---
 
@@ -9,7 +9,7 @@ tags: graphql, response, data, errors, v2, migration
 
 ## Problem
 
-v1 used `res(ctx.data({ user: ... }))` for GraphQL responses. In v2, you return the standard GraphQL response shape via `HttpResponse.json()`.
+v1 used `res(ctx.data({ user: ... }))` for GraphQL responses. From v2 on, you return the standard GraphQL response shape via `HttpResponse.json()`. In v3, operations are defined on a `graphql.link()`, not on the `graphql` namespace.
 
 ## Incorrect
 
@@ -28,17 +28,19 @@ graphql.query('GetUser', (req, res, ctx) => {
 import { graphql } from 'msw/graphql'
 import { HttpResponse } from 'msw/http'
 
+const api = graphql.link('/graphql')
+
 // Success response
-graphql.query('GetUser', ({ variables }) => {
+api.query('GetUser', ({ variables }) => {
   return HttpResponse.json({
     data: {
-      user: { id: '1', name: 'John' },
+      user: { id: variables.id, name: 'John' },
     },
   })
 })
 
 // Error response
-graphql.query('GetUser', () => {
+api.query('GetUser', () => {
   return HttpResponse.json({
     errors: [
       { message: 'User not found' },
@@ -47,7 +49,7 @@ graphql.query('GetUser', () => {
 })
 
 // Partial data with errors
-graphql.query('GetUser', () => {
+api.query('GetUser', () => {
   return HttpResponse.json({
     data: { user: null },
     errors: [

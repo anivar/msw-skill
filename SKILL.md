@@ -15,13 +15,13 @@ compatibility: "TypeScript/JavaScript projects using msw ^3.0.0 (audited against
 metadata:
   author: Anivar Aravind
   author_url: https://anivar.net
-  version: 1.2.0
+  version: 1.2.1
   tags: msw, mocking, api, testing, http, graphql, service-worker, fetch
 ---
 
 # MSW (Mock Service Worker)
 
-**IMPORTANT:** Your training data about `msw` may be outdated or incorrect — MSW v2 completely removed the `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. MSW v3 (2026-09-28) is now ESM-only and requires Node.js >=22 and TypeScript >=5.9. Always rely on this skill's rule files and the project's actual source code as the source of truth. Do not fall back on memorized v1 or v2 patterns when they conflict with the retrieved reference.
+**IMPORTANT:** Your training data about `msw` may be outdated or incorrect — MSW v2 completely removed the `rest` namespace, `res(ctx.*)` response composition, and `(req, res, ctx)` resolver signature. MSW v3 is ESM-only and requires Node.js >=22 and TypeScript >=5.9. Always rely on this skill's rule files and the project's actual source code as the source of truth. Do not fall back on memorized v1 or v2 patterns when they conflict with the retrieved reference.
 
 ## When to Use MSW
 
@@ -36,7 +36,7 @@ MSW is for **API mocking at the network level** — intercepting HTTP, GraphQL, 
 | E2E testing real APIs | Playwright/Cypress network interception |
 | Mocking module internals | `vi.mock()` / `jest.mock()` |
 
-## Quick Reference — v2 Essentials
+## Quick Reference
 
 ```typescript
 // Imports
@@ -114,7 +114,7 @@ it.concurrent('name', server.boundary(async () => {
 
 | Rule | File | Summary |
 |------|------|---------|
-| HttpResponse for cookies | `response-use-httpresponse.md` | Native Response drops Set-Cookie — use HttpResponse |
+| HttpResponse for cookies | `response-use-httpresponse.md` | In browsers, native Response drops Set-Cookie — use HttpResponse |
 | Network errors | `response-error-network.md` | Use `HttpResponse.error()`; don't throw plain `Error`s |
 | Streaming | `response-streaming.md` | `sse()` for Server-Sent Events; ReadableStream for chunked |
 
@@ -132,7 +132,7 @@ it.concurrent('name', server.boundary(async () => {
 | Rule | File | Summary |
 |------|------|---------|
 | Response shape | `graphql-response-shape.md` | Return `{ data }` / `{ errors }` via HttpResponse.json |
-| Endpoint scoping | `graphql-scope-with-link.md` | Use `graphql.link(url)` for multiple GraphQL APIs |
+| Endpoint scoping | `graphql-scope-with-link.md` | One `graphql.link(url)` per API; a wildcard link matches every endpoint |
 
 ### Utilities (MEDIUM)
 
@@ -170,7 +170,7 @@ it.concurrent('name', server.boundary(async () => {
 
 ## v2 to v3 Migration Quick Reference
 
-MSW 3.0.0 (2026-09-28) is **ESM-only** and requires **Node.js >=22** and **TypeScript >=5.9** (v6/v7 also supported). The headline change: all exports moved from the package root to subpath entrypoints. See `references/migration-v2-to-v3.md` for the complete guide (and the official codemods).
+MSW 3.0.0 is **ESM-only** and requires **Node.js >=22** and **TypeScript >=5.9** (v6/v7 also supported). The headline change: handlers and utilities are imported from subpath entrypoints instead of the package root. `msw/graphql` needs the optional peer dependency `graphql` (>=16) installed. See `references/migration-v2-to-v3.md` for the complete guide (and the official codemods).
 
 | v2 | v3 |
 |----|-----|
@@ -182,8 +182,8 @@ MSW 3.0.0 (2026-09-28) is **ESM-only** and requires **Node.js >=22** and **TypeS
 | `graphql.query(...)` on the namespace | Removed — link-first: `graphql.link(url).query(...)` |
 | `import { setupServer } from 'msw/native'` | `@msw/react-native` package replaces the `msw/native` entrypoint |
 | `handleRequest()` | Removed — use `getResponse()` (or experimental `defineNetwork()` for custom networks) |
-| `onUnhandledRequest: 'error'` | `onUnhandledFrame: 'error'` — covers requests AND WebSocket connections |
-| Custom callback `(request, print)` | Single `{ frame, defaults }` object; narrow on `frame.protocol`, call `defaults.warn()` |
+| `onUnhandledRequest: 'error'` | `onUnhandledFrame: 'error'` — covers requests AND WebSocket connections. Plain JavaScript ignores a leftover `onUnhandledRequest`, so the default `'warn'` applies |
+| Custom callback `(request, print)` | Single `{ frame, defaults }` object; narrow with `frame instanceof HttpNetworkFrame` (`msw/experimental`), call `defaults.warn()` |
 | `server.events.on('connection', ...)` | `server.events.on('websocket:connection', ...)` — life-cycle API only; the `ws` link's own `addEventListener('connection')` keeps its name |
 | `GraphQLLinkHandlers` type | Renamed to `GraphQLLink` |
 | `LifeCycleEventsMap` from `msw` | Per-protocol maps (`HttpNetworkFrameEventMap`, `WebSocketNetworkFrameEventMap`) from `msw/experimental` |

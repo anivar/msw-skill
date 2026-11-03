@@ -36,7 +36,7 @@ http.get('/api/user/:id', ({ request, params, cookies }) => {
 | Property | Type | Description |
 |----------|------|-------------|
 | `request` | `Request` | Standard Fetch API Request object |
-| `params` | `Record<string, string \| string[]>` | Path parameters. Repeating params (`:segments+`) yield an array of strings |
+| `params` | `Record<string, string \| string[]>` | Path parameters. In msw 3.0.3 a repeating param (`:segments+`, `:path*`) arrives as one string with its slashes (`'a/b'`); the docs and the type also allow an array |
 | `cookies` | `Record<string, string>` | Parsed request cookies |
 | `requestId` | `string` | Unique request identifier |
 | `finalize` | `Function` | Schedule a cleanup callback to run after the resolver completes |

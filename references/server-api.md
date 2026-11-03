@@ -198,7 +198,7 @@ server.events.removeAllListeners()
 | Strategy | Behavior |
 |----------|----------|
 | `'warn'` (default) | Console warning, request passes through |
-| `'error'` | Throws error, fails test |
+| `'error'` | Console error; the request fails with a network error (`TypeError`) |
 | `'bypass'` | Silent, request passes through |
 | Custom function | Conditional handling |
 
@@ -214,20 +214,21 @@ server.listen({ onUnhandledFrame: 'bypass' })  // silent passthrough
 
 ### Custom strategy
 
-v3 changed the callback shape: a single `{ frame, defaults }` object instead of `(request, print)`. Narrow on `frame.protocol` before reading data, and call a method on `defaults` (`defaults.warn()`, `defaults.error()`) to use a built-in strategy.
+v3 changed the callback shape: a single `{ frame, defaults }` object instead of `(request, print)`. Narrow with `frame instanceof HttpNetworkFrame` (from `msw/experimental`) before reading `frame.data` — a `frame.protocol` check does not narrow its type — and call a method on `defaults` (`defaults.warn()`, `defaults.error()`) to use a built-in strategy.
 
 ```typescript
+import { HttpNetworkFrame } from 'msw/experimental'
 import { isCommonAssetRequest } from 'msw/utils/is-common-asset-request'
 
 server.listen({
   onUnhandledFrame({ frame, defaults }) {
     // Supplying a custom callback OPTS OUT of MSW's built-in
     // common-asset exemption — re-apply it manually.
-    if (frame.protocol === 'http' && isCommonAssetRequest(frame.data.request)) {
+    if (frame instanceof HttpNetworkFrame && isCommonAssetRequest(frame.data.request)) {
       return
     }
 
-    if (frame.protocol === 'http') {
+    if (frame instanceof HttpNetworkFrame) {
       const url = new URL(frame.data.request.url)
       if (url.hostname === 'cdn.example.com') {
         return

@@ -9,7 +9,7 @@ tags: setup, import, node, browser, subpath
 
 ## Problem
 
-Developers import `setupServer` from `'msw'` instead of `'msw/node'`. The top-level `'msw'` export only contains `http`, `graphql`, `HttpResponse`, etc.
+Developers import `setupServer` from `'msw'` instead of `'msw/node'`. The root `'msw'` module does not export `setupServer` or `setupWorker`.
 
 ## Incorrect
 
@@ -36,13 +36,16 @@ import { graphql } from 'msw/graphql'
 
 | Export | Import from |
 |--------|-------------|
-| `http`, `graphql`, `sse`, `ws`, `HttpResponse`, `delay`, `bypass`, `passthrough` | `'msw'` |
+| `http`, `HttpResponse` | `'msw/http'` |
+| `graphql` | `'msw/graphql'` (install the `graphql` package) |
+| `ws`, `sse` | `'msw/ws'`, `'msw/sse'` |
+| `delay`, `bypass`, `passthrough` | `'msw/utils/delay'`, `'msw/utils/bypass'`, `'msw/utils/passthrough'` |
 | `setupServer` | `'msw/node'` |
 | `setupWorker` | `'msw/browser'` |
 | `setupServer` (React Native) | `'@msw/react-native'` |
 
 ## Why
 
-MSW v2 uses subpath exports to tree-shake correctly. Importing `setupServer` from `'msw'` produces an import error. The split ensures browser code doesn't bundle Node.js dependencies and vice versa.
+MSW uses subpath exports to tree-shake correctly. Importing `setupServer` from `'msw'` produces an import error. The split ensures browser code doesn't bundle Node.js dependencies and vice versa.
 
 React Native has a third subpath, `'@msw/react-native'`. It exports the same `setupServer` API but ships the interceptors relevant to the React Native environment. `msw/node` pulls in Node.js modules such as `http` that do not exist in React Native, so replace any `msw/node` import in React Native code with `@msw/react-native`.

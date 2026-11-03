@@ -1,7 +1,7 @@
 ---
 title: Use `HttpResponse` for Cookie Mocking Instead of Native `Response`
 impact: HIGH
-description: '`HttpResponse` supports `Set-Cookie` headers. The native `Response` constructor forbids them.'
+description: '`HttpResponse` supports `Set-Cookie` headers. In the browser, the native `Response` constructor drops them.'
 tags: response, HttpResponse, cookies, Set-Cookie, forbidden-header
 ---
 
@@ -9,12 +9,12 @@ tags: response, HttpResponse, cookies, Set-Cookie, forbidden-header
 
 ## Problem
 
-The native `Response` class forbids the `Set-Cookie` header in the constructor. Using `new Response()` with `Set-Cookie` silently drops the header.
+In the browser, the Fetch API forbids the `Set-Cookie` header on a constructed `Response`: `new Response()` with `Set-Cookie` silently drops it. Node.js does not filter the header, so a Node test can pass with a native `Response` while the same handler loses the cookie in the browser.
 
 ## Incorrect
 
 ```typescript
-// BUG: Set-Cookie is a forbidden response header in native Response
+// BUG (browser): Set-Cookie is a forbidden response header in native Response
 http.get('/api/login', () => {
   return new Response(JSON.stringify({ success: true }), {
     headers: {
@@ -23,7 +23,7 @@ http.get('/api/login', () => {
     },
   })
 })
-// The Set-Cookie header is silently dropped!
+// In the browser, the Set-Cookie header is silently dropped
 ```
 
 ## Correct
@@ -49,4 +49,4 @@ For responses that don't need `Set-Cookie`, you can use either `new Response()` 
 
 ## Why
 
-The Fetch API spec forbids `Set-Cookie` in the `Response` constructor's `Headers`. MSW's `HttpResponse` extends `Response` but bypasses this restriction for mock responses, since mock cookies need to be testable.
+In the browser, the Fetch API spec forbids `Set-Cookie` in the `Response` constructor's `Headers`. MSW's `HttpResponse` extends `Response` but keeps the header for mock responses, so mock cookies are testable. Node.js's `Response` does not filter the header (checked on Node 26 with msw 3.0.3), so only `HttpResponse` behaves the same in both environments.

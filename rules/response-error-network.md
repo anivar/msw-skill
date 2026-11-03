@@ -9,7 +9,7 @@ tags: response, error, network, HttpResponse.error
 
 ## Problem
 
-Throwing an error inside a resolver doesn't simulate a network failure. MSW treats it as an unhandled exception in the response resolver — it emits the `unhandledException` life-cycle event, and the client never sees a network error. Use `HttpResponse.error()`, which produces a `TypeError: Failed to fetch` on the client side.
+Throwing an error inside a resolver doesn't simulate a network failure. MSW treats it as an unhandled exception in the response resolver — it emits the `unhandledException` life-cycle event, and the client never sees a network error. Use `HttpResponse.error()`, which makes the client's `fetch` reject with a `TypeError`. The message depends on the runtime: Node.js says "fetch failed", and each browser has its own text.
 
 ## Incorrect
 
@@ -23,7 +23,7 @@ http.get('/api/data', () => {
 ## Correct
 
 ```typescript
-// Simulates a network error (TypeError: Failed to fetch)
+// Simulates a network error: fetch rejects with a TypeError
 http.get('/api/data', () => {
   return HttpResponse.error()
 })
@@ -31,7 +31,7 @@ http.get('/api/data', () => {
 
 ## Why
 
-`HttpResponse.error()` creates a `Response` with `type: "error"`, which the Fetch API translates to a `TypeError: Failed to fetch`. This is what applications actually see during real network failures (DNS errors, connection refused, etc.).
+`HttpResponse.error()` creates a `Response` with `type: "error"`, which the Fetch API turns into a rejected `fetch` with a `TypeError` — "fetch failed" in Node.js, and a browser-specific message in each browser. Assert on the error type, not the message. This is what applications actually see during real network failures (DNS errors, connection refused, etc.).
 
 Throwing a plain `Error` inside a resolver is caught by MSW and surfaced on the `unhandledException` life-cycle event (see `references/server-api.md`) — it is reported as a bug in your handler, not as a network failure. To model a *server* error, return a valid error `Response` instead.
 

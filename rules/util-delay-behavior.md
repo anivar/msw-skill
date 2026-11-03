@@ -13,7 +13,7 @@ tags: utility, delay, timing, node, browser, testing
 
 ## Incorrect
 
-```typescript
+```tsx
 // BUG: the realistic delay is cut down in Node.js
 http.get('/api/data', async () => {
   await delay() // Effectively instant in Node.js — and so is delay('real')
@@ -56,4 +56,4 @@ http.get('/api/slow', async () => {
 
 The no-argument `delay()` is designed for browser mocking where you want realistic-feeling latency without slowing down tests: it applies "a random number equal to the average response time you encounter when communicating with an actual HTTP server (~100-400ms)". In Node.js, "the implicit delay is negated to prevent it affecting the test performance".
 
-`delay('real')` is not an escape hatch from that. Upstream defines it as explicitly setting the same realistic response time, and in msw 2.15.0 both routes call the same internal helper — which returns the browser's random 100-400ms but a fixed few milliseconds under Node. So in a test runner, `delay()` and `delay('real')` are interchangeable and neither produces observable latency. If your test depends on a delay (e.g., testing loading states), always specify explicit milliseconds.
+`delay('real')` is not an escape hatch from that. Upstream defines it as explicitly setting the same realistic response time, and under Node both resolve after a few milliseconds (msw 3.0.3). So in a test runner, `delay()` and `delay('real')` are interchangeable and neither produces observable latency. If your test depends on a delay (e.g., testing loading states), always specify explicit milliseconds.
