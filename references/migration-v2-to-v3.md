@@ -139,6 +139,43 @@ const response = await getResponse(handlers, request)
 
 If you used `handleRequest` to build a custom interception layer, look at the experimental `defineNetwork()` API instead.
 
+## Path matching moved to `@msw/url`
+
+msw 3.0.0 replaced `path-to-regexp` with its own matcher, `@msw/url`. Two results of this change are
+not in the msw migration guide. Both were measured with the same handlers on msw 2.15.0 and msw 3.0.3.
+
+**A repeating path parameter is one string, not an array.**
+
+| Handler | Request | v2 `params` | v3 `params` |
+|---|---|---|---|
+| `/settings/:segments+` | `/settings/user/privacy` | `{ segments: ['user', 'privacy'] }` | `{ segments: 'user/privacy' }` |
+| `/files/:path*` | `/files/a/b/c.txt` | `{ path: ['a', 'b', 'c.txt'] }` | `{ path: 'a/b/c.txt' }` |
+
+The `PathParams` type still allows `ReadonlyArray<string>`, so TypeScript does not report v2 code
+such as `params.segments.join('/')`. On v3 that call throws a `TypeError` at runtime. The msw docs
+page on path parameters still shows arrays. Code that must run on both versions:
+
+```typescript
+import { http, HttpResponse } from 'msw/http'
+
+http.get('/settings/:segments+', ({ params }) => {
+  const segments = [params.segments ?? []].flat().join('/') // 'user/privacy' on v2 and v3
+  return HttpResponse.json({ segments })
+})
+```
+
+**RegExp tokens inside a string predicate do not match.** In v2, `'/user/:id(\\d+)'` matched
+`/user/123`. In v3 the same handler matches no request, and the request goes to the unhandled-request
+strategy. Use a `RegExp` predicate. Its capture groups arrive by index:
+
+```typescript
+import { http, HttpResponse } from 'msw/http'
+
+http.get(/\/user\/(\d+)$/, ({ params }) => {
+  return HttpResponse.json({ id: params['0'] }) // '123' for /user/123
+})
+```
+
 ## Additional behavior changes (from the release notes)
 
 - Cookies are no longer managed in Node.js; your environment's default applies (browser unaffected). `request.headers.get('cookie')` returns null in handlers — use the `cookies` resolver argument.
@@ -175,3 +212,4 @@ export default defineConfig({ plugins: [msw()] })
 8. Replace `LifeCycleEventsMap` imports with the per-protocol maps from `msw/experimental`.
 9. `await worker.stop()` where shutdown ordering matters.
 10. If you relied on MSW handling fake timers or cookie headers in Node, make both explicit in tests.
+11. Search for repeating path parameters (`:name+`, `:name*`) and treat their value as a string. Replace RegExp tokens in string predicates (`:id(\\d+)`) with a `RegExp` predicate.
