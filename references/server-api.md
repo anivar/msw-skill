@@ -182,7 +182,7 @@ server.events.on('request:start', async ({ request }) => {
 ### Removing event listeners
 
 ```typescript
-const listener = ({ request }) => {
+const listener = ({ request }: { request: Request }) => {
   console.log(request.url)
 }
 

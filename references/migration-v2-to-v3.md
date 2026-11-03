@@ -19,6 +19,7 @@ Request handlers, event handlers, and utilities are now exported from designated
 Before (v2):
 
 ```typescript
+// @ts-expect-error msw 3 does not export graphql from the root; import it from 'msw/graphql'
 import { http, HttpResponse, graphql, ws, sse, delay, bypass, passthrough } from 'msw'
 ```
 
@@ -53,12 +54,15 @@ import { passthrough } from 'msw/utils/passthrough'
 
 ```typescript
 // v2
+// @ts-expect-error msw 3 does not export graphql from the root; import it from 'msw/graphql'
 import { graphql, HttpResponse } from 'msw'
 
 export const handlers = [
   graphql.query('GetUser', () => HttpResponse.json({ data: { user: { name: 'John' } } })),
 ]
+```
 
+```typescript
 // v3
 import { HttpResponse } from 'msw/http'
 import { graphql } from 'msw/graphql'
@@ -104,6 +108,7 @@ The `connection` life-cycle event on `server.events` / `worker.events` is rename
 
 ```typescript
 // v2
+// @ts-expect-error msw 3 renamed the 'connection' event to 'websocket:connection'
 server.events.on('connection', listener)
 
 // v3

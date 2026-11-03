@@ -33,9 +33,13 @@ Note: early Node.js 18 releases (e.g. v18.8.0) lack `request.formData()` support
 
 ```typescript
 // BAD: v1 imports
+// @ts-expect-error msw has no 'rest' export since v2
 import { rest } from 'msw'
+// @ts-expect-error setupWorker is exported from 'msw/browser', not 'msw'
 import { setupWorker } from 'msw'
+```
 
+```typescript
 // GOOD: v2 imports
 import { http, HttpResponse } from 'msw'
 import { setupWorker } from 'msw/browser'
@@ -60,6 +64,7 @@ The biggest breaking change. v1 used `(req, res, ctx)` three-argument resolvers.
 
 ```typescript
 // BAD: v1 resolver
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.get('/user', (req, res, ctx) => {
   return res(ctx.json({ name: 'John' }))
 })
@@ -105,6 +110,7 @@ Complete `ctx.*` to `HttpResponse.*` mapping:
 
 ```typescript
 // BAD: v1
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.post('/api/user', (req, res, ctx) => {
   return res(ctx.status(201), ctx.json({ id: '1', name: 'John' }))
 })
@@ -119,6 +125,7 @@ http.post('/api/user', () => {
 
 ```typescript
 // BAD: v1
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.get('/api/data', (req, res, ctx) => {
   return res(ctx.set('X-Request-Id', '123'), ctx.json({ value: 42 }))
 })
@@ -136,6 +143,7 @@ http.get('/api/data', () => {
 
 ```typescript
 // BAD: v1
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.get('/api/user', (req, res, ctx) => {
   return res(ctx.delay(1000), ctx.json({ name: 'John' }))
 })
@@ -153,6 +161,7 @@ http.get('/api/user', async () => {
 
 ```typescript
 // BAD: v1
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.get('/api/data', (req, res, ctx) => {
   return res.once(ctx.json({ first: true }))
 })
@@ -167,6 +176,7 @@ http.get('/api/data', () => {
 
 ```typescript
 // BAD: v1
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.get('/api/data', (req, res, ctx) => {
   return res.networkError('Failed to connect')
 })
@@ -191,6 +201,7 @@ http.get('/api/data', () => {
 
 ```typescript
 // BAD: v1 (sync body access)
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.post('/api/user', (req, res, ctx) => {
   const { name } = req.body
   return res(ctx.json({ name }))
@@ -207,6 +218,7 @@ http.post('/api/user', async ({ request }) => {
 
 ```typescript
 // BAD: v1
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.get('/api/posts', (req, res, ctx) => {
   const page = req.url.searchParams.get('page')
   return res(ctx.json({ page }))
@@ -224,12 +236,14 @@ http.get('/api/posts', ({ request }) => {
 
 ```typescript
 // BAD: v1
+// @ts-expect-error v1 resolver signature (req, res, ctx), and msw 3 has no graphql.query()
 graphql.query('GetUser', (req, res, ctx) => {
   const { id } = req.variables
   return res(ctx.data({ user: { id, name: 'John' } }))
 })
 
-// GOOD: v2
+// GOOD: v2 (msw 3 moved operations onto graphql.link(), see migration-v2-to-v3.md)
+// @ts-expect-error msw 3 has no graphql.query(); define operations on graphql.link()
 graphql.query('GetUser', ({ variables }) => {
   const { id } = variables
   return HttpResponse.json({
@@ -250,6 +264,7 @@ graphql.query('GetUser', ({ variables }) => {
 
 ```typescript
 // BAD: v1
+// @ts-expect-error v1 API; v2 moved life-cycle events to server.events.on()
 server.on('request:start', (req) => {
   console.log(req.url.href)
 })
@@ -285,6 +300,7 @@ Key changes:
 
 ```typescript
 // BAD: v1
+// @ts-expect-error v1 API; v2 replaced it with listHandlers()
 worker.printHandlers()
 
 // GOOD: v2 — returns an array of handlers instead of logging them
@@ -295,6 +311,7 @@ console.log(worker.listHandlers())
 
 ```typescript
 // BAD: v1
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.get('/api/user', async (req, res, ctx) => {
   const originalResponse = await ctx.fetch(req)
   const body = await originalResponse.json()

@@ -17,6 +17,7 @@ v1 used `res(ctx.data({ user: ... }))` for GraphQL responses. From v2 on, you re
 // BUG: ctx.data() is removed in v2
 import { graphql } from 'msw/graphql'
 
+// @ts-expect-error v1 resolver signature (req, res, ctx), and msw 3 has no graphql.query()
 graphql.query('GetUser', (req, res, ctx) => {
   return res(ctx.data({ user: { id: '1', name: 'John' } }))
 })

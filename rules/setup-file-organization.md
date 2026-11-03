@@ -19,7 +19,9 @@ const server = setupServer(
   http.get('/api/user', () => HttpResponse.json({ name: 'John' })),
   http.get('/api/posts', () => HttpResponse.json([])),
 )
+```
 
+```typescript
 // test/posts.test.ts — same handlers duplicated
 const server = setupServer(
   http.get('/api/user', () => HttpResponse.json({ name: 'John' })),
@@ -48,7 +50,9 @@ export const handlers = [
     return HttpResponse.json([{ id: 1, title: 'First Post' }])
   }),
 ]
+```
 
+```typescript
 // src/mocks/node.ts
 import { setupServer } from 'msw/node'
 import { handlers } from './handlers'

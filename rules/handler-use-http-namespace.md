@@ -15,9 +15,11 @@ AI agents and developers often generate `rest.get()`, `rest.post()` patterns fro
 
 ```typescript
 // BUG: 'rest' is not exported from 'msw' in v2
+// @ts-expect-error msw has no 'rest' export since v2
 import { rest } from 'msw'
 
 const handlers = [
+  // @ts-expect-error v1 resolver signature (req, res, ctx)
   rest.get('/api/user', (req, res, ctx) => {
     return res(ctx.json({ name: 'John' }))
   }),

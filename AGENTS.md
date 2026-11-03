@@ -33,7 +33,9 @@ The `rest` namespace was removed in MSW 2.0. All HTTP handlers use `http`.
 
 ```typescript
 // INCORRECT — rest does not exist in v2
+// @ts-expect-error msw has no 'rest' export since v2
 import { rest } from 'msw'
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.get('/api/user', (req, res, ctx) => res(ctx.json({ name: 'John' })))
 
 // CORRECT
@@ -63,6 +65,7 @@ v2 resolvers receive a single info object: `{ request, params, cookies, requestI
 
 ```typescript
 // INCORRECT — v1 triple signature
+// @ts-expect-error v2 resolvers take one info object, not (req, res, ctx)
 http.get('/api/user/:id', (req, res, ctx) => {
   return res(ctx.json({ id: req.params.id }))
 })
@@ -89,6 +92,7 @@ v2 uses standard `Response` objects constructed via `HttpResponse`.
 
 ```typescript
 // INCORRECT — res() and ctx are removed
+// @ts-expect-error v2 resolvers take one info object, not (req, res, ctx)
 http.get('/api/user', (req, res, ctx) => {
   return res(ctx.status(200), ctx.json({ name: 'John' }))
 })
@@ -143,8 +147,11 @@ export const handlers = [
 
 ```typescript
 // INCORRECT
+// @ts-expect-error setupServer is exported from 'msw/node', not 'msw'
 import { setupServer } from 'msw'
+```
 
+```typescript
 // CORRECT
 import { setupServer } from 'msw/node'    // Node.js (tests, SSR)
 import { setupWorker } from 'msw/browser'  // Browser (Storybook, dev)
@@ -201,12 +208,16 @@ export const handlers = [
   http.get('/api/user', () => HttpResponse.json({ name: 'John' })),
   http.get('/api/posts', () => HttpResponse.json([{ id: 1, title: 'Post' }])),
 ]
+```
 
+```typescript
 // src/mocks/node.ts
 import { setupServer } from 'msw/node'
 import { handlers } from './handlers'
 export const server = setupServer(...handlers)
+```
 
+```typescript
 // src/mocks/browser.ts
 import { setupWorker } from 'msw/browser'
 import { handlers } from './handlers'
@@ -419,10 +430,12 @@ server.listen({ onUnhandledFrame: 'error' })
 
 ```typescript
 // INCORRECT — ctx.data() removed in v2
+// @ts-expect-error v1 resolver signature (req, res, ctx), and msw 3 has no graphql.query()
 graphql.query('GetUser', (req, res, ctx) => res(ctx.data({ user: {} })))
 
 // INCORRECT in v3 — query/mutation/operation are no longer on the namespace
-graphql.query('GetUser', ({ variables }) => { ... })
+// @ts-expect-error msw 3 has no graphql.query(); define operations on graphql.link()
+graphql.query('GetUser', ({ variables }) => { /* ... */ })
 
 // CORRECT — v3 is link-first: define operations on a graphql.link()
 import { graphql } from 'msw/graphql'

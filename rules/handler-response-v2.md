@@ -15,6 +15,7 @@ v1 response composition `res(ctx.status(200), ctx.json(...))` doesn't exist in v
 
 ```typescript
 // BUG: res() and ctx are removed in v2
+// @ts-expect-error v2 resolvers take one info object, not (req, res, ctx)
 http.get('/api/user', (req, res, ctx) => {
   return res(
     ctx.status(200),

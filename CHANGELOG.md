@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.3
+
+Checked against **msw 3.0.3** on Node.js 26.12.1. Every code block now type-checks with TypeScript 5.9 in strict mode against msw 3.0.3 and the libraries it imports, or carries a marker that says why it must fail.
+
+### Corrected — the skill taught something untrue
+
+- **The Apollo example did not run on Apollo Client 4.** `references/test-patterns.md` imported `ApolloProvider` from `@apollo/client` and passed `uri` to `ApolloClient`. Executed on `@apollo/client` 4.3.6: the import is a `SyntaxError`, and the client ignores `uri`, so a query rejects with a `TypeError`. The example now imports `ApolloProvider` from `@apollo/client/react` and passes `link: new HttpLink({ uri })`.
+- **The Storybook example used an export that msw-storybook-addon 3 does not have.** msw 3 needs the addon 3.x, because 2.0.7 has the peer range `msw ^2.0.0`. Executed on msw-storybook-addon 3.0.3 with Storybook 10.6.5: importing `initialize` is a `SyntaxError`. The root exports only the default `addonMsw`, and `msw-storybook-addon/csf3` exports `mswLoader`. The example now passes `mswLoader` a setup function that starts `setupWorker(...handlers)`. The note gives the CSF Next form and says that the addon deprecates the CSF 3.0 loader API.
+
+### Changed
+
+- 35 lines that show removed v1 or v2 API carry `// @ts-expect-error <reason>`, so the reader sees why the line fails on msw 3 (`AGENTS.md`, `references/anti-patterns.md`, both migration guides and six rules).
+- Eight blocks that showed Incorrect and Correct code together, and declared the same name twice, are split into separate blocks.
+- Signature pseudo-code in `references/handler-api.md` and `references/response-api.md` is fenced as `text`.
+- `withAuth` and `withPagination` in `references/test-patterns.md` are typed with `HttpResponseResolver`, and the listener in `references/server-api.md` types its parameter, so the examples compile in strict mode.
+- The v1-to-v2 GraphQL example says that msw 3 moved operations onto `graphql.link()`.
+
 ## 1.2.2
 
 Checked against **msw 3.0.3** on Node.js 26.12.1, with the same handlers run on **msw 2.15.0** for comparison.

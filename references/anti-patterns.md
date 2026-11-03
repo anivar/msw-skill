@@ -17,7 +17,9 @@
 
 ```typescript
 // BAD
+// @ts-expect-error msw has no 'rest' export since v2
 import { rest } from 'msw'
+// @ts-expect-error v1 resolver signature (req, res, ctx)
 rest.get('/api/user', (req, res, ctx) => res(ctx.json({ name: 'John' })))
 
 // GOOD
@@ -56,8 +58,11 @@ See also upstream's `withSearchParams` higher-order resolver, which calls `passt
 
 ```typescript
 // BAD
+// @ts-expect-error setupServer is exported from 'msw/node', not 'msw'
 import { setupServer } from 'msw'
+```
 
+```typescript
 // GOOD
 import { setupServer } from 'msw/node'
 ```

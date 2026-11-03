@@ -15,6 +15,7 @@ v1 used `(req, res, ctx) => res(ctx.json(...))`. v2 uses a single info object wi
 
 ```typescript
 // BUG: v1 resolver signature — does not work in v2
+// @ts-expect-error v2 resolvers take one info object, not (req, res, ctx)
 http.get('/api/user/:id', (req, res, ctx) => {
   const { id } = req.params
   return res(ctx.json({ id, name: 'John' }))
