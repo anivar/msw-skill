@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.2
+
+Checked against **msw 3.0.3** on Node.js 26.12.1, with the same handlers run on **msw 2.15.0** for comparison.
+
+### Added — the v2-to-v3 migration guide missed two breaking changes
+
+- **A repeating path parameter is one string in v3.** `/settings/:segments+` on `/settings/user/privacy` gives `['user', 'privacy']` on msw 2.15.0 and `'user/privacy'` on msw 3.0.3. The `PathParams` type still allows an array, so `params.segments.join('/')` type-checks and then throws. `references/migration-v2-to-v3.md` and the `SKILL.md` migration table now say so and give code that works on both versions.
+- **RegExp tokens in a string predicate no longer match.** `'/user/:id(\\d+)'` matched `/user/123` on msw 2.15.0 and matches no request on msw 3.0.3. The migration guide, its checklist, the `SKILL.md` table and `references/handler-api.md` now point to a `RegExp` predicate.
+
+Both changes come from the move to the `@msw/url` matcher in msw 3.0.0. The msw path-parameters docs page still shows arrays.
+
 ## 1.2.1
 
 Checked against **msw 3.0.3** on Node.js 26. Every changed example was type-checked with TypeScript 5.9 in strict mode, and every changed behaviour claim was executed against msw 3.0.3.

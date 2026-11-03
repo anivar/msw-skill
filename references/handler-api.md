@@ -125,6 +125,9 @@ http.get('/api/user', resolver)
 http.get('/api/user/:id', resolver)
 ```
 
+A string predicate takes `:name`, `:name?`, `:name*`, `:name+` and `*`. It does not take RegExp
+tokens: in msw 3.0.3, `'/api/user/:id(\\d+)'` matches no request. Use a `RegExp` predicate for that.
+
 ### Wildcard — Matches path prefix
 
 ```typescript

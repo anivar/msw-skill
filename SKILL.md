@@ -15,7 +15,7 @@ compatibility: "TypeScript/JavaScript projects using msw ^3.0.0 (audited against
 metadata:
   author: Anivar Aravind
   author_url: https://anivar.net
-  version: 1.2.1
+  version: 1.2.2
   tags: msw, mocking, api, testing, http, graphql, service-worker, fetch
 ---
 
@@ -188,6 +188,8 @@ MSW 3.0.0 is **ESM-only** and requires **Node.js >=22** and **TypeScript >=5.9**
 | `GraphQLLinkHandlers` type | Renamed to `GraphQLLink` |
 | `LifeCycleEventsMap` from `msw` | Per-protocol maps (`HttpNetworkFrameEventMap`, `WebSocketNetworkFrameEventMap`) from `msw/experimental` |
 | `worker.stop()` returns void | Returns a Promise — `await worker.stop()` for in-flight critical scenarios |
+| `:segments+` and `:path*` give an array (`['user', 'privacy']`) | One string with slashes (`'user/privacy'`). The type still allows an array, so TypeScript does not report `.join()` on it |
+| RegExp tokens in a string predicate (`'/user/:id(\\d+)'`) | Match no request. Use a `RegExp` predicate |
 
 New in v3: `msw/vite` plugin (serves the worker script — no more copying `mockServiceWorker.js` into public), GraphQL v17 and link-first subscriptions, the WebSocket Extension API, page-navigation and form-submission interception, passthrough request-header modification, and per-utility `msw/utils/*` modules for smaller bundles.
 
