@@ -219,9 +219,9 @@ Factory functions for reusable response patterns:
 ### Authentication wrapper
 
 ```typescript
-import { http, HttpResponse } from 'msw/http'
+import { http, HttpResponse, type HttpResponseResolver } from 'msw/http'
 
-function withAuth(resolver) {
+function withAuth(resolver: HttpResponseResolver): HttpResponseResolver {
   return async (info) => {
     const token = info.request.headers.get('Authorization')
     if (!token) {
@@ -240,7 +240,7 @@ http.get('/api/profile', withAuth(({ request }) => {
 ### Paginated response wrapper
 
 ```typescript
-function withPagination(items) {
+function withPagination<T>(items: T[]): HttpResponseResolver {
   return ({ request }) => {
     const url = new URL(request.url)
     const page = Number(url.searchParams.get('page') ?? '1')
@@ -346,11 +346,12 @@ function renderWithSWR(ui: React.ReactElement) {
 Create a fresh `InMemoryCache` per test:
 
 ```tsx
-import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client'
+import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client'
+import { ApolloProvider } from '@apollo/client/react'
 
 function renderWithApollo(ui: React.ReactElement) {
   const client = new ApolloClient({
-    uri: '/graphql',
+    link: new HttpLink({ uri: '/graphql' }),
     cache: new InMemoryCache(),
   })
   return render(
@@ -358,6 +359,8 @@ function renderWithApollo(ui: React.ReactElement) {
   )
 }
 ```
+
+In Apollo Client 4, `ApolloProvider` is exported from `@apollo/client/react`, not from `@apollo/client`. The client takes an `HttpLink`: it ignores a `uri` option, and its queries then fail.
 
 ## Conditional Browser Mocking
 
@@ -384,14 +387,19 @@ enableMocking().then(() => {
 
 ```typescript
 // .storybook/preview.ts
-import { initialize, mswLoader } from 'msw-storybook-addon'
+import { setupWorker } from 'msw/browser'
+import { mswLoader } from 'msw-storybook-addon/csf3'
 import { handlers } from '../src/mocks/handlers'
 
-initialize({ onUnhandledFrame: 'bypass' })
-
-export const parameters = {
-  msw: { handlers },
+export default {
+  loaders: [
+    mswLoader(async () => {
+      const worker = setupWorker(...handlers)
+      await worker.start({ onUnhandledFrame: 'bypass' })
+      return worker
+    }),
+  ],
 }
-
-export const loaders = [mswLoader]
 ```
+
+msw-storybook-addon 3 has no `initialize()` export. In CSF 3.0, pass a setup function to `mswLoader` from `msw-storybook-addon/csf3`. The addon deprecates this CSF 3.0 loader API. With CSF Next, pass the same function to the default export: `definePreview({ addons: [addonMsw(setup)] })`. Handlers given to `setupWorker()` stay active when the addon resets handlers between stories. The addon README still passes `onUnhandledRequest`; msw 3 renamed that option to `onUnhandledFrame`.

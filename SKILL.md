@@ -15,7 +15,7 @@ compatibility: "TypeScript/JavaScript projects using msw ^3.0.0 (audited against
 metadata:
   author: Anivar Aravind
   author_url: https://anivar.net
-  version: 1.2.2
+  version: 1.2.3
   tags: msw, mocking, api, testing, http, graphql, service-worker, fetch
 ---
 

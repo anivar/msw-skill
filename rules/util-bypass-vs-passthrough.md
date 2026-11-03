@@ -17,6 +17,7 @@ Developers confuse `bypass()` and `passthrough()`. They serve completely differe
 // BUG: bypass() creates a NEW request — it doesn't "let this request through"
 import { bypass } from 'msw/utils/bypass'
 
+// @ts-expect-error a resolver cannot return the Request that bypass() creates
 http.get('/api/user', ({ request }) => {
   // Wrong: this makes a SECOND request, not passing the original through
   return bypass(request)

@@ -18,7 +18,7 @@ import { HttpResponse } from 'msw/http'
 
 ### Constructor
 
-```typescript
+```text
 new HttpResponse(body?, init?)
 ```
 

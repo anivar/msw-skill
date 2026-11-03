@@ -29,7 +29,7 @@ All methods on the `http` namespace:
 
 ### Signature
 
-```typescript
+```text
 http.get(
   predicate:
     | string
@@ -66,7 +66,9 @@ v3 is link-first: the `graphql` namespace no longer exposes `query`/`mutation`/`
 
 ```typescript
 const api = graphql.link('https://api.example.com/graphql')
+```
 
+```text
 api.query<Query, Variables>(
   predicate: string | RegExp | DocumentNode | TypedDocumentNode,
   resolver: (info: {

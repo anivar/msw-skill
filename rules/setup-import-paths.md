@@ -15,6 +15,7 @@ Developers import `setupServer` from `'msw'` instead of `'msw/node'`. The root `
 
 ```typescript
 // BUG: setupServer is not exported from 'msw'
+// @ts-expect-error setupServer is exported from 'msw/node', not 'msw'
 import { setupServer } from 'msw'
 ```
 
