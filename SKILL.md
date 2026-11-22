@@ -1,21 +1,20 @@
 ---
 name: msw
 description: >
-  MSW (Mock Service Worker) v2 and v3 best practices, patterns, and API guidance for
-  API mocking in JavaScript/TypeScript tests and development. Covers handler
-  design, server setup, response construction, testing patterns, GraphQL, and
-  v1-to-v2 and v2-to-v3 migration. Baseline: msw ^3.0.0.
-  Triggers on: msw imports, http.get, http.post, HttpResponse, setupServer,
-  setupWorker, graphql.query, sse, ws.link, mentions of "msw",
-  "mock service worker", "api mocking", or "msw v3".
+  Mock Service Worker (MSW) v2 and v3 rules for mocking HTTP, GraphQL, WebSocket and SSE traffic in
+  tests, Storybook and local development: handler design, setupServer and setupWorker, HttpResponse,
+  per-test overrides with server.use, unhandled requests, and v1 to v2 to v3 migration. Baseline:
+  msw ^3.0.0. Use this skill whenever code imports msw or the user wants to mock a network request
+  or an API in a JavaScript or TypeScript project, even if they only say "mock the API", "fake the
+  backend" or "stub fetch". Triggers on: http.get, http.post, HttpResponse, setupServer,
+  setupWorker, graphql.query, ws.link, sse, server.use, onUnhandledRequest, "intercepted a request
+  without a matching request handler", "mock service worker", "msw v3".
 license: MIT
-user-invocable: false
-agentic: false
 compatibility: "TypeScript/JavaScript projects using msw ^3.0.0 (audited against msw 3.0.3; Node.js >=22, TypeScript >=5.9)"
 metadata:
   author: Anivar Aravind
   author_url: https://anivar.net
-  version: 1.2.3
+  version: 1.2.4
   tags: msw, mocking, api, testing, http, graphql, service-worker, fetch
 ---
 

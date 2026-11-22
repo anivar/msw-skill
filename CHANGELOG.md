@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.4
+
+Checked against **msw 3.0.3**, as in 1.2.3. Frontmatter and navigation only; no rule changes.
+
+### Changed
+
+- The description says when to load the skill: any file that imports msw, and any request to mock a network call or an API in a JavaScript or TypeScript project, even when the user only says "mock the API" or "stub fetch". It names the unhandled-request warning.
+- The frontmatter carries only the fields of the Agent Skills specification. `user-invocable: false` and `agentic: false` are removed: `agentic` is not a field of the specification, and claude.ai and the Skills API refuse a skill whose frontmatter has a key outside the specification. In Claude Code, `/msw` now loads the skill by hand.
+- `references/migration-v2-to-v3.md` opens with a contents list.
+
 ## 1.2.3
 
 Checked against **msw 3.0.3** on Node.js 26.12.1. Every code block now type-checks with TypeScript 5.9 in strict mode against msw 3.0.3 and the libraries it imports, or carries a marker that says why it must fail.

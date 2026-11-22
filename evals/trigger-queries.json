@@ -1,0 +1,66 @@
+[
+  {
+    "query": "my react component fetches /api/user on mount. write a test that fakes the backend response",
+    "should_trigger": true
+  },
+  {
+    "query": "test logs are full of '[MSW] Warning: intercepted a request without a matching request handler: GET https://api.example.com/v1/rates'",
+    "should_trigger": true
+  },
+  {
+    "query": "upgrade msw from 1.x to 2, we have rest.get and res(ctx.json()) all over src/mocks",
+    "should_trigger": true
+  },
+  {
+    "query": "storybook stories for the orders page need fake API data, what's the right way to mock it",
+    "should_trigger": true
+  },
+  {
+    "query": "in one test only, make GET /api/orders return a 500 so I can check the error banner",
+    "should_trigger": true
+  },
+  {
+    "query": "mock our graphql getProduct query in the vitest suite",
+    "should_trigger": true
+  },
+  {
+    "query": "the chat feature uses a websocket, set up a fake server for its tests",
+    "should_trigger": true
+  },
+  {
+    "query": "local dev: the frontend should run without the backend, fake the /v2/menus endpoints",
+    "should_trigger": true
+  },
+  {
+    "query": "mock the fs module in jest so readFileSync returns a fixture",
+    "should_trigger": false
+  },
+  {
+    "query": "set up wiremock for the java service integration tests",
+    "should_trigger": false
+  },
+  {
+    "query": "write an express route handler for GET /api/users with pagination",
+    "should_trigger": false
+  },
+  {
+    "query": "configure nginx to proxy /api to the backend container",
+    "should_trigger": false
+  },
+  {
+    "query": "mock a class constructor with jest.mock",
+    "should_trigger": false
+  },
+  {
+    "query": "add a service worker for offline caching to our PWA",
+    "should_trigger": false
+  },
+  {
+    "query": "mock the stripe python SDK in pytest",
+    "should_trigger": false
+  },
+  {
+    "query": "record and replay HTTP traffic in our Go tests",
+    "should_trigger": false
+  }
+]

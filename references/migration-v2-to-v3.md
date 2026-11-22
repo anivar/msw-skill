@@ -2,6 +2,20 @@
 
 MSW 3.0 (checked against 3.0.3) restructures the package entrypoints, makes GraphQL mocking link-first, and unifies the handling of unhandled requests and WebSocket connections. Official guide: https://mswjs.io/docs/migrations/2.x-to-3.x — MSW also ships **codemods** for the migration (see the official guide's "Codemods" link).
 
+## Contents
+
+- Requirements
+- Imports — everything moves to subpaths
+- GraphQL is link-first
+- `onUnhandledRequest` → `onUnhandledFrame`
+- Life-cycle events
+- `worker.stop()` returns a Promise
+- `handleRequest()` removed
+- Path matching moved to `@msw/url`
+- Additional behavior changes (from the release notes)
+- New in v3
+- Migration checklist
+
 ## Requirements
 
 | Requirement | v2 | v3 |
